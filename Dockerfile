@@ -1,4 +1,4 @@
-FROM FROM node:20-alpine AS base
+FROM node:20-alpine AS base
 
 RUN apk update && apk upgrade --no-cache
 # 2. Dependencies
