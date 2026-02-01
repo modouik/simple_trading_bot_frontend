@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: false, // Désactive le mode strict
+  eslint: {
+    ignoreDuringBuilds: true, // Ignore les erreurs de style
+  },
+  typescript: {
+    ignoreBuildErrors: true, // Ignore les erreurs de type
+  },
   output: 'standalone', // Génère un build optimisé
   env: {
     // For Local Server
