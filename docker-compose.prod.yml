@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: frontend-tradingbot
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # CORRECTION : args est bien indenté sous "build"
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://192.168.1.6:8080/api
+        NEXT_PUBLIC_MODE: "TESTNET"
+    restart: always
+    ports:
+      - "8081:3000"
+    environment:
+      - NODE_ENV=production
+      # Le secret privé reste ici (Runtime)
+      - HMAC_SECRET=664deafa33e24593d24bb810c5c727fdae5bb4d718d2ea6e979e57daf6d8e275
+      - COOKIE_SECURE=true
