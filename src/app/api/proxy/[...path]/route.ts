@@ -1,3 +1,35 @@
+import { createHmac } from "crypto";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+function getBackendBaseUrl(): string {
+  let raw =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.API_BASE_URL ||
+    DEFAULT_API_BASE_URL;
+
+  if (!raw.startsWith("http")) {
+    raw = `https://${raw}`;
+  }
+
+  const trimmed = raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function generateNonce(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function generateTimestamp(): string {
+  return Math.floor(Date.now() / 1000).toString();
+}
+
+// 👇 MODIFICATION : On passe l'URI complète (avec les ?) au lieu du path simple
 // ... (Gardez les imports et les fonctions utilitaires generateNonce/Timestamp comme avant)
 
 // 👇 CORRECTION CRITIQUE : L'ORDRE DES PARAMÈTRES
