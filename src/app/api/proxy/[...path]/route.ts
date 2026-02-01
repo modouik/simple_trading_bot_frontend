@@ -4,17 +4,40 @@ import { NextRequest, NextResponse } from "next/server";
 
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-// ... (Gardez vos fonctions getBackendBaseUrl, generateNonce, generateTimestamp) ...
+function getBackendBaseUrl(): string {
+  let raw =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.API_BASE_URL ||
+    DEFAULT_API_BASE_URL;
 
-// 👇 CORRECTION 1 : On passe le Query String à la fonction de construction
+  if (!raw.startsWith("http")) {
+    raw = `https://${raw}`;
+  }
+
+  const trimmed = raw.endsWith("/") ? raw.slice(0, -1) : raw;
+  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+}
+
+function generateNonce(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function generateTimestamp(): string {
+  return Math.floor(Date.now() / 1000).toString();
+}
+
+// 👇 MODIFICATION : On passe l'URI complète (avec les ?) au lieu du path simple
 function buildSignaturePayload(
   method: string,
-  uri: string, // On passe l'URI complète (ex: /api/sessions?page=1)
+  uri: string, 
   bodyString: string,
   timestamp: string,
   nonce: string
 ): string {
-  // Le format standard est souvent : TS + NONCE + METHOD + URI + BODY
+  // Format : TIMESTAMP + NONCE + METHOD + URI + BODY
   return `${timestamp}${nonce}${method.toUpperCase()}${uri}${bodyString}`;
 }
 
@@ -30,28 +53,28 @@ async function proxyRequest(
   const pathSegment = pathSegments.length ? pathSegments.join("/") : "";
   const method = request.method;
 
-  // 1. Gestion du Secret
-  const hmacSecret = process.env.HMAC_SECRET || "";
-  if (!hmacSecret) {
-    console.error("🚨 ERREUR CRITIQUE : HMAC_SECRET est vide dans Next.js !");
-    return NextResponse.json({ error: "Config Error" }, { status: 500 });
+  if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  // 2. Préparation de l'URL et du Query String
-  const baseUrl = getBackendBaseUrl(); // Assurez-vous que ça retourne bien http://app:8000/api
+  const hmacSecret = process.env.HMAC_SECRET || "";
+  if (!hmacSecret) {
+    console.error("🚨 ERREUR: HMAC_SECRET manquant dans Next.js !");
+  }
+
+  const baseUrl = getBackendBaseUrl();
   const { searchParams } = new URL(request.url);
   const queryString = searchParams.toString();
-  
-  // L'URI relative que Laravel voit (ex: /api/sessions ou /api/sessions?page=1)
-  // ATTENTION : Vérifiez si votre Laravel attend '/api/...' ou juste '/sessions...'
-  // Dans votre code précédent, vous forciez '/api/'. Je garde cette logique.
+
+  // 👇 CONSTRUCTION DE L'URI RELATIVE EXACTE QUE LARAVEL VOIT
+  // Si query string existe, on l'ajoute (ex: /api/sessions?page=1)
   const relativeUri = queryString 
     ? `/api/${pathSegment}?${queryString}` 
     : `/api/${pathSegment}`;
 
-  const targetUrl = `${baseUrl.replace('/api', '')}${relativeUri}`;
+  // URL Cible pour fetch (on retire /api de baseUrl car relativeUri l'a déjà)
+  const targetUrl = `${baseUrl.replace(/\/api$/, '')}${relativeUri}`;
 
-  // 3. Gestion du Body (Crucial pour POST/PUT)
   let bodyString = "";
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     try {
@@ -61,11 +84,10 @@ async function proxyRequest(
     }
   }
 
-  // 4. Construction de la Signature
   const timestamp = generateTimestamp();
   const nonce = generateNonce();
-  
-  // 👇 CORRECTION ICI : On utilise relativeUri qui inclut les params
+
+  // 👇 ON SIGNE L'URI COMPLÈTE
   const signaturePayload = buildSignaturePayload(
     method,
     relativeUri,
@@ -74,23 +96,24 @@ async function proxyRequest(
     nonce
   );
   
-  const signature = signHmacSha256(signaturePayload, hmacSecret);
+  const signature = hmacSecret ? signHmacSha256(signaturePayload, hmacSecret) : "";
 
-  // 🔍 LOGS DE DÉBOGAGE (À regarder dans le terminal Docker Next.js)
-  console.log("---------------- HMAC DEBUG ----------------");
-  console.log("SECRET (3 premiers chars):", hmacSecret.substring(0, 3) + "...");
-  console.log("PAYLOAD SIGNÉ (NextJS):", signaturePayload);
-  console.log("SIGNATURE GÉNÉRÉE:", signature);
-  console.log("URL CIBLE:", targetUrl);
-  console.log("--------------------------------------------");
+  // 🔍 LOGS DE DÉBOGAGE (Regardez le terminal Next.js !)
+  console.log("---------------- PROXY HMAC DEBUG ----------------");
+  console.log(`📡 Méthode: ${method}`);
+  console.log(`🔗 URL Cible: ${targetUrl}`);
+  console.log(`✍️ Payload Signé: ${signaturePayload}`);
+  console.log(`🔑 Signature: ${signature}`);
+  console.log(`👮 Auth Header: ${request.headers.get("authorization") ? "PRÉSENT" : "MANQUANT ❌"}`);
+  console.log("--------------------------------------------------");
 
   const headersToSend = new Headers();
   headersToSend.set("X-Timestamp", timestamp);
   headersToSend.set("X-Nonce", nonce);
-  headersToSend.set("X-Signature", signature);
+  if (signature) headersToSend.set("X-Signature", signature);
   headersToSend.set("Accept", "application/json");
 
-  // Transfert des headers importants (Auth, etc.)
+  // Transfert des headers importants (Token Bearer, etc.)
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
     if (lower !== "host" && lower !== "connection" && lower !== "content-length") {
@@ -98,7 +121,7 @@ async function proxyRequest(
     }
   });
 
-  // Gestion des cookies
+  // Transfert des cookies
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   if (cookieHeader) headersToSend.set("Cookie", cookieHeader);
@@ -107,6 +130,7 @@ async function proxyRequest(
     method,
     headers: headersToSend,
     cache: "no-store",
+    redirect: "manual",
   };
 
   if (bodyString && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
@@ -115,14 +139,14 @@ async function proxyRequest(
 
   try {
     const backendResponse = await fetch(targetUrl, fetchOptions);
-    
-    // ... (Le reste de votre code de réponse reste identique) ...
-    // N'oubliez pas de remettre le code pour transférer Set-Cookie !
-    
     const buffer = await backendResponse.arrayBuffer();
+
     const responseHeaders = new Headers();
     backendResponse.headers.forEach((value, key) => {
-       if (key.toLowerCase() !== 'content-encoding') responseHeaders.set(key, value);
+      // On transfère tout sauf l'encodage (géré par Next)
+      if (key.toLowerCase() !== "content-encoding" && key.toLowerCase() !== "transfer-encoding") {
+        responseHeaders.set(key, value);
+      }
     });
 
     return new NextResponse(buffer, {
@@ -132,9 +156,13 @@ async function proxyRequest(
     });
 
   } catch (err) {
-    console.error("[proxy] Error:", err);
+    console.error("🚨 Proxy Error:", err);
     return NextResponse.json({ error: "Backend unavailable" }, { status: 502 });
   }
 }
 
-// ... Exports GET, POST, etc.
+export async function GET(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function POST(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function PUT(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function PATCH(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function DELETE(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
