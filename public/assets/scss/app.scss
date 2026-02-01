@@ -1,17 +1,15 @@
+/* app.scss - Nettoyé */
 
-
-/* CORRECTION : Suppression des tildes (~) qui font planter Next.js 16 */
+/* ON ENLÈVE TOUT ÇA (Ce sera dans le layout.js) :
 @import 'bootstrap/dist/css/bootstrap.min.css';
 @import 'react-toastify/dist/ReactToastify.css';
-
 @import 'slick-carousel/slick/slick.css';
 @import 'slick-carousel/slick/slick-theme.css';
-
 @import 'react-date-range/dist/styles.css';
 @import 'react-date-range/dist/theme/default.css';
+*/
 
-/* Note : Si cela plante encore, il faudra peut-être commenter la ligne ci-dessous 
-   car importer du SCSS dans du CSS est risqué. */
+/* On garde uniquement VOTRE style */
 @import './style.scss';
 
 .App-header {
