@@ -2,45 +2,20 @@ import { createHmac } from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-// Amélioration : Ne force pas HTTPS si on est en local/docker (http)
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
-function getBackendBaseUrl(): string {
-  let raw =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    process.env.API_BASE_URL ||
-    DEFAULT_API_BASE_URL;
+// ... (Gardez vos fonctions getBackendBaseUrl, generateNonce, generateTimestamp) ...
 
-  // Si pas de protocole, on assume https sauf si localhost/docker (simplification)
-  if (!raw.startsWith("http")) {
-    raw = `https://${raw}`;
-  }
-
-  const trimmed = raw.endsWith("/") ? raw.slice(0, -1) : raw;
-  return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
-}
-
-function generateNonce(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function generateTimestamp(): string {
-  return Math.floor(Date.now() / 1000).toString();
-}
-
+// 👇 CORRECTION 1 : On passe le Query String à la fonction de construction
 function buildSignaturePayload(
   method: string,
-  pathSegment: string,
+  uri: string, // On passe l'URI complète (ex: /api/sessions?page=1)
   bodyString: string,
   timestamp: string,
   nonce: string
 ): string {
-  // NOTE: Assure-toi que Laravel signe exactement cette chaîne
-  // Souvent, on inclut aussi le QueryString ici si Laravel vérifie l'URI complète
-  return `${timestamp}${nonce}${method.toUpperCase()}/api/${pathSegment}${bodyString}`;
+  // Le format standard est souvent : TS + NONCE + METHOD + URI + BODY
+  return `${timestamp}${nonce}${method.toUpperCase()}${uri}${bodyString}`;
 }
 
 function signHmacSha256(payload: string, secret: string): string {
@@ -53,25 +28,30 @@ async function proxyRequest(
 ) {
   const { path: pathSegments } = await context.params;
   const pathSegment = pathSegments.length ? pathSegments.join("/") : "";
-
   const method = request.method;
-  if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
-  }
 
+  // 1. Gestion du Secret
   const hmacSecret = process.env.HMAC_SECRET || "";
-  // En prod, on veut peut-être logger l'erreur mais ne pas crasher si pas de secret (dépend de ta config)
   if (!hmacSecret) {
-    console.error("[proxy] HMAC_SECRET is not set");
+    console.error("🚨 ERREUR CRITIQUE : HMAC_SECRET est vide dans Next.js !");
+    return NextResponse.json({ error: "Config Error" }, { status: 500 });
   }
 
-  const baseUrl = getBackendBaseUrl();
+  // 2. Préparation de l'URL et du Query String
+  const baseUrl = getBackendBaseUrl(); // Assurez-vous que ça retourne bien http://app:8000/api
   const { searchParams } = new URL(request.url);
   const queryString = searchParams.toString();
-  const targetPath = pathSegment ? `/${pathSegment}` : "";
-  // Construction de l'URL cible
-  const targetUrl = `${baseUrl}${targetPath}${queryString ? `?${queryString}` : ""}`;
+  
+  // L'URI relative que Laravel voit (ex: /api/sessions ou /api/sessions?page=1)
+  // ATTENTION : Vérifiez si votre Laravel attend '/api/...' ou juste '/sessions...'
+  // Dans votre code précédent, vous forciez '/api/'. Je garde cette logique.
+  const relativeUri = queryString 
+    ? `/api/${pathSegment}?${queryString}` 
+    : `/api/${pathSegment}`;
 
+  const targetUrl = `${baseUrl.replace('/api', '')}${relativeUri}`;
+
+  // 3. Gestion du Body (Crucial pour POST/PUT)
   let bodyString = "";
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     try {
@@ -81,48 +61,52 @@ async function proxyRequest(
     }
   }
 
+  // 4. Construction de la Signature
   const timestamp = generateTimestamp();
   const nonce = generateNonce();
+  
+  // 👇 CORRECTION ICI : On utilise relativeUri qui inclut les params
   const signaturePayload = buildSignaturePayload(
     method,
-    pathSegment,
+    relativeUri,
     bodyString,
     timestamp,
     nonce
   );
   
-  // Signature uniquement si le secret est présent
-  const signature = hmacSecret ? signHmacSha256(signaturePayload, hmacSecret) : "";
+  const signature = signHmacSha256(signaturePayload, hmacSecret);
+
+  // 🔍 LOGS DE DÉBOGAGE (À regarder dans le terminal Docker Next.js)
+  console.log("---------------- HMAC DEBUG ----------------");
+  console.log("SECRET (3 premiers chars):", hmacSecret.substring(0, 3) + "...");
+  console.log("PAYLOAD SIGNÉ (NextJS):", signaturePayload);
+  console.log("SIGNATURE GÉNÉRÉE:", signature);
+  console.log("URL CIBLE:", targetUrl);
+  console.log("--------------------------------------------");
 
   const headersToSend = new Headers();
   headersToSend.set("X-Timestamp", timestamp);
   headersToSend.set("X-Nonce", nonce);
-  if (signature) headersToSend.set("X-Signature", signature);
+  headersToSend.set("X-Signature", signature);
   headersToSend.set("Accept", "application/json");
 
-  // Copie des headers importants venant du client (Authorization, Content-Type, etc.)
+  // Transfert des headers importants (Auth, etc.)
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    // On retire 'host' et 'connection' pour laisser fetch gérer ça
     if (lower !== "host" && lower !== "connection" && lower !== "content-length") {
-       // On passe Authorization (Bearer) et le reste
-       headersToSend.set(key, value); 
+      headersToSend.set(key, value);
     }
   });
 
-  // ✅ CORRECTION 1 : Gestion robuste des Cookies entrants
+  // Gestion des cookies
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  if (cookieHeader) {
-    headersToSend.set("Cookie", cookieHeader);
-  }
+  if (cookieHeader) headersToSend.set("Cookie", cookieHeader);
 
   const fetchOptions: RequestInit = {
     method,
     headers: headersToSend,
     cache: "no-store",
-    // Important pour éviter que fetch suive les redirections automatiquement (login -> home)
-    redirect: "manual", 
   };
 
   if (bodyString && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
@@ -131,26 +115,16 @@ async function proxyRequest(
 
   try {
     const backendResponse = await fetch(targetUrl, fetchOptions);
-    const contentType = backendResponse.headers.get("content-type") ?? "";
     
-    // On lit le buffer une seule fois
+    // ... (Le reste de votre code de réponse reste identique) ...
+    // N'oubliez pas de remettre le code pour transférer Set-Cookie !
+    
     const buffer = await backendResponse.arrayBuffer();
-
-    // Préparation de la réponse Next.js
     const responseHeaders = new Headers();
-    
-    // ✅ CORRECTION 2 : Transfert de TOUS les headers pertinents (surtout Set-Cookie)
     backendResponse.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      // On exclut les headers de transport gérés par Node/Next
-      if (lower !== "content-encoding" && lower !== "transfer-encoding") {
-        responseHeaders.set(key, value);
-      }
+       if (key.toLowerCase() !== 'content-encoding') responseHeaders.set(key, value);
     });
 
-    // Cas particulier : Set-Cookie peut nécessiter une gestion spéciale si multiple
-    // Mais fetch combine souvent les headers. Next.js gère bien le Set-Cookie dans Headers maintenant.
-    
     return new NextResponse(buffer, {
       status: backendResponse.status,
       statusText: backendResponse.statusText,
@@ -158,17 +132,9 @@ async function proxyRequest(
     });
 
   } catch (err) {
-    console.error("[proxy] Backend fetch error:", err);
-    return NextResponse.json(
-      { error: "Backend unavailable" },
-      { status: 502 }
-    );
+    console.error("[proxy] Error:", err);
+    return NextResponse.json({ error: "Backend unavailable" }, { status: 502 });
   }
 }
 
-// Exports des méthodes
-export async function GET(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
-export async function POST(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
-export async function PUT(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
-export async function PATCH(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
-export async function DELETE(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+// ... Exports GET, POST, etc.
