@@ -8,8 +8,8 @@ services:
       dockerfile: Dockerfile
       # CORRECTION : args est bien indenté sous "build"
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://192.168.1.6:8080/api
-        NEXT_PUBLIC_MODE: "TESTNET"
+        NEXT_PUBLIC_API_BASE_URL: http://admin.newwaydev.com/api
+        NEXT_PUBLIC_MODE: "PRODUCTION"
     restart: always
     ports:
       - "8081:3000"
