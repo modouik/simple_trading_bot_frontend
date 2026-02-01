@@ -10,6 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    # Copie des fichiers (Code source)
     - name: Copy files via SSH
       uses: appleboy/scp-action@master
       with:
@@ -19,6 +20,7 @@ jobs:
         source: "."
         target: "~/apps/frontend-tradingbot"
 
+    # Lancement des commandes sur le serveur
     - name: Build and Deploy via SSH
       uses: appleboy/ssh-action@master
       with:
@@ -27,7 +29,16 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd ~/apps/frontend-tradingbot
-          # On utilise le fichier .prod.yml
+          
+          # 1. On arrête le conteneur actuel
           docker compose -f docker-compose.prod.yml down
-          docker compose -f docker-compose.prod.yml up -d --build
+          
+          # 2. LA MODIFICATION CRUCIALE : Build avec --no-cache
+          # Cela force Docker à re-télécharger Alpine et refaire les mises à jour de sécurité
+          docker compose -f docker-compose.prod.yml build --no-cache
+          
+          # 3. On lance le nouveau conteneur tout neuf
+          docker compose -f docker-compose.prod.yml up -d
+          
+          # 4. On nettoie les vieilles images qui prennent de la place
           docker image prune -f
