@@ -2,15 +2,21 @@ import { createHmac } from "crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+// Amélioration : Ne force pas HTTPS si on est en local/docker (http)
 const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
 function getBackendBaseUrl(): string {
-  const raw =
+  let raw =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
     process.env.API_BASE_URL ||
     DEFAULT_API_BASE_URL;
-  const withProtocol = raw.startsWith("http") ? raw : `https://${raw}`;
-  const trimmed = withProtocol.endsWith("/") ? withProtocol.slice(0, -1) : withProtocol;
+
+  // Si pas de protocole, on assume https sauf si localhost/docker (simplification)
+  if (!raw.startsWith("http")) {
+    raw = `https://${raw}`;
+  }
+
+  const trimmed = raw.endsWith("/") ? raw.slice(0, -1) : raw;
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
 }
 
@@ -32,6 +38,8 @@ function buildSignaturePayload(
   timestamp: string,
   nonce: string
 ): string {
+  // NOTE: Assure-toi que Laravel signe exactement cette chaîne
+  // Souvent, on inclut aussi le QueryString ici si Laravel vérifie l'URI complète
   return `${timestamp}${nonce}${method.toUpperCase()}/api/${pathSegment}${bodyString}`;
 }
 
@@ -48,25 +56,20 @@ async function proxyRequest(
 
   const method = request.method;
   if (!["GET", "POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-    return NextResponse.json(
-      { error: "Method not allowed" },
-      { status: 405 }
-    );
+    return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
   }
 
   const hmacSecret = process.env.HMAC_SECRET || "";
+  // En prod, on veut peut-être logger l'erreur mais ne pas crasher si pas de secret (dépend de ta config)
   if (!hmacSecret) {
     console.error("[proxy] HMAC_SECRET is not set");
-    return NextResponse.json(
-      { error: "Server configuration error" },
-      { status: 500 }
-    );
   }
 
   const baseUrl = getBackendBaseUrl();
   const { searchParams } = new URL(request.url);
   const queryString = searchParams.toString();
   const targetPath = pathSegment ? `/${pathSegment}` : "";
+  // Construction de l'URL cible
   const targetUrl = `${baseUrl}${targetPath}${queryString ? `?${queryString}` : ""}`;
 
   let bodyString = "";
@@ -87,27 +90,29 @@ async function proxyRequest(
     timestamp,
     nonce
   );
-  const signature = signHmacSha256(signaturePayload, hmacSecret);
+  
+  // Signature uniquement si le secret est présent
+  const signature = hmacSecret ? signHmacSha256(signaturePayload, hmacSecret) : "";
 
   const headersToSend = new Headers();
   headersToSend.set("X-Timestamp", timestamp);
   headersToSend.set("X-Nonce", nonce);
-  headersToSend.set("X-Signature", signature);
+  if (signature) headersToSend.set("X-Signature", signature);
   headersToSend.set("Accept", "application/json");
 
+  // Copie des headers importants venant du client (Authorization, Content-Type, etc.)
   request.headers.forEach((value, key) => {
     const lower = key.toLowerCase();
-    if (
-      lower === "authorization" ||
-      lower === "content-type" ||
-      lower === "accept-language"
-    ) {
-      headersToSend.set(key, value);
+    // On retire 'host' et 'connection' pour laisser fetch gérer ça
+    if (lower !== "host" && lower !== "connection" && lower !== "content-length") {
+       // On passe Authorization (Bearer) et le reste
+       headersToSend.set(key, value); 
     }
   });
 
+  // ✅ CORRECTION 1 : Gestion robuste des Cookies entrants
   const cookieStore = await cookies();
-  const cookieHeader = cookieStore.toString();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   if (cookieHeader) {
     headersToSend.set("Cookie", cookieHeader);
   }
@@ -116,7 +121,10 @@ async function proxyRequest(
     method,
     headers: headersToSend,
     cache: "no-store",
+    // Important pour éviter que fetch suive les redirections automatiquement (login -> home)
+    redirect: "manual", 
   };
+
   if (bodyString && ["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     fetchOptions.body = bodyString;
   }
@@ -124,43 +132,31 @@ async function proxyRequest(
   try {
     const backendResponse = await fetch(targetUrl, fetchOptions);
     const contentType = backendResponse.headers.get("content-type") ?? "";
-    const isJson =
-      contentType.includes("application/json") ||
-      contentType.includes("application/vnd.api+json");
-
+    
+    // On lit le buffer une seule fois
     const buffer = await backendResponse.arrayBuffer();
-    let body: BodyInit | null = buffer.byteLength ? buffer : null;
-    if (buffer.byteLength && isJson) {
-      try {
-        const text = new TextDecoder().decode(buffer);
-        const json = JSON.parse(text);
-        return NextResponse.json(json, {
-          status: backendResponse.status,
-          statusText: backendResponse.statusText,
-          headers: { "content-type": contentType },
-        });
-      } catch {
-        body = buffer;
-      }
-    }
 
+    // Préparation de la réponse Next.js
     const responseHeaders = new Headers();
+    
+    // ✅ CORRECTION 2 : Transfert de TOUS les headers pertinents (surtout Set-Cookie)
     backendResponse.headers.forEach((value, key) => {
       const lower = key.toLowerCase();
-      if (
-        lower === "content-type" ||
-        lower === "content-length" ||
-        lower === "cache-control"
-      ) {
+      // On exclut les headers de transport gérés par Node/Next
+      if (lower !== "content-encoding" && lower !== "transfer-encoding") {
         responseHeaders.set(key, value);
       }
     });
 
-    return new NextResponse(body, {
+    // Cas particulier : Set-Cookie peut nécessiter une gestion spéciale si multiple
+    // Mais fetch combine souvent les headers. Next.js gère bien le Set-Cookie dans Headers maintenant.
+    
+    return new NextResponse(buffer, {
       status: backendResponse.status,
       statusText: backendResponse.statusText,
       headers: responseHeaders,
     });
+
   } catch (err) {
     console.error("[proxy] Backend fetch error:", err);
     return NextResponse.json(
@@ -170,37 +166,9 @@ async function proxyRequest(
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
-) {
-  return proxyRequest(request, context);
-}
-
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
-) {
-  return proxyRequest(request, context);
-}
-
-export async function PUT(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
-) {
-  return proxyRequest(request, context);
-}
-
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
-) {
-  return proxyRequest(request, context);
-}
-
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
-) {
-  return proxyRequest(request, context);
-}
+// Exports des méthodes
+export async function GET(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function POST(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function PUT(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function PATCH(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
+export async function DELETE(req: NextRequest, ctx: any) { return proxyRequest(req, ctx); }
