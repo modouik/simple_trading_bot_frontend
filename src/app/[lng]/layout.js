@@ -1,20 +1,11 @@
-// Ajoutez ces lignes :
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-toastify/dist/ReactToastify.css';
 import 'slick-carousel/slick/slick.css';
 import 'slick-carousel/slick/slick-theme.css';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
+import '@/styles/app.scss';
 
-// Votre import existant (à garder)
-import '../../../public/assets/scss/app.scss'; 
-
-// ... le reste du code ...
-export default function RootLayout({ children, params: { lng } }) {
-  // ...
-}
-
-import '../../../public/assets/scss/app.scss'
 import I18NextProvider from "@/helper/i18NextContext/I18NextProvider"
 import { AuthProvider } from "@/context/AuthContext"
 import TanstackWrapper from "@/layout/TanstackWrapper"

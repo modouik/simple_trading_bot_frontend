@@ -1036,7 +1036,7 @@
       &:after {
         content: "";
         position: absolute;
-        background-image: url("../../images/32px.png");
+        background-image: url("/assets/images/32px.png");
         background-position: -68px -4px;
         width: 24px;
         height: 24px;
@@ -1086,7 +1086,7 @@
           position: absolute;
           top: 0;
           left: 0;
-          background-image: url(../../images/32px.png);
+          background-image: url("/assets/images/32px.png");
           width: 24px;
           height: calc(100% - 11px);
           background-position: -292px -4px;
@@ -1115,13 +1115,13 @@
       &:after {
         content: "";
         position: absolute;
-        background-image: url("../../images/32px.png");
+        background-image: url("/assets/images/32px.png");
         background-position: -132px -4px;
       }
     }
 
     .tree-icon {
-      background-image: url("../../images/32px.png");
+      background-image: url("/assets/images/32px.png");
       width: 24px;
       height: 24px;
       line-height: 24px;
