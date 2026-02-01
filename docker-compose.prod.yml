@@ -12,7 +12,7 @@ services:
         NEXT_PUBLIC_MODE: "PRODUCTION"
     restart: always
     ports:
-      - "8081:3000"
+      - "127.0.0.1:8081:3000"
     environment:
       - NODE_ENV=production
       # Le secret privé reste ici (Runtime)
