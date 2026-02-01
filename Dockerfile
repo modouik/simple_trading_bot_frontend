@@ -1,6 +1,6 @@
 # 1. Base image
 FROM node:18-alpine AS base
-
+RUN apk update && apk upgrade --no-cache
 # 2. Dependencies
 FROM base AS deps
 WORKDIR /app
