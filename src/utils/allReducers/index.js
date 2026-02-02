@@ -23,14 +23,6 @@ export const selectImageReducer = (state, action) => {
             return state;
     }
 };
-export const selectStoredImageReducer = (state, action) => {
-    switch (action.type) {
-        case "STOREDIMAGE":
-            return {
-                storedImage: action.payload
-            };
-    }
-};
 export const CartReducer = (state, action) => {
     switch (action.type) {
         case "STOREAMOUNT":
