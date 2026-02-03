@@ -27,11 +27,18 @@ export function middleware(request) {
     return NextResponse.rewrite(url);
   }
 
+  if (pathname === "/signup") {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${fallbackLng}/signup`;
+    return NextResponse.rewrite(url);
+  }
+
   const hasRefreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
   const lng = resolveLng(pathname);
   const isLoginRoute = pathname === `/${lng}/login`;
+  const isSignupRoute = pathname === `/${lng}/signup`;
 
-  if (!hasRefreshToken && !isLoginRoute) {
+  if (!hasRefreshToken && !isLoginRoute && !isSignupRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

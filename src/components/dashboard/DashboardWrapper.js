@@ -10,7 +10,7 @@ const DashboardWrapper = ({ classes = {} ,children }) => {
         <Container fluid={true}>
             <Row>
                 <Col {...classes?.colProps}>
-                    <Card>
+                    <Card className="app-theme-card">
                         <CardBody>
                             <div className="title-header">
                                 <div className="d-flex align-items-center">

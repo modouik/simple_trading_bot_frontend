@@ -35,7 +35,7 @@ const TradeDetailsModal = ({ isOpen, toggle, trade }: TradeDetailsModalProps) =>
     : "--";
 
   return (
-    <Modal isOpen={isOpen} toggle={toggle} size="lg">
+    <Modal isOpen={isOpen} toggle={toggle} size="lg" className="app-theme-trade-modal">
       <ModalHeader toggle={toggle}>
         <div className="d-flex align-items-center gap-2">
           <span>Trade Details</span>

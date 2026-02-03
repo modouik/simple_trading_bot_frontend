@@ -7,10 +7,10 @@ type ChartCardProps = {
 };
 
 const ChartCard = ({ title, subtitle, children }: ChartCardProps) => (
-  <div className="border rounded p-3 bg-white h-100">
+  <div className="app-theme-card rounded-3 p-3 h-100">
     <div className="mb-3">
-      <h5 className="mb-1">{title}</h5>
-      {subtitle ? <p className="text-muted mb-0">{subtitle}</p> : null}
+      <h5 className="mb-1" style={{ color: "var(--app-text)" }}>{title}</h5>
+      {subtitle ? <p className="mb-0" style={{ color: "var(--app-text-muted)", fontSize: "0.9rem" }}>{subtitle}</p> : null}
     </div>
     <div style={{ minHeight: 240 }}>{children}</div>
   </div>

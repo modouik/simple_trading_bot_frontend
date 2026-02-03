@@ -83,16 +83,18 @@ const SessionsPage = () => {
         actions={
           <>
             <button
-              className="btn btn-outline-primary"
+              type="button"
+              className="btn app-theme-btn-outline"
               onClick={compareSelected}
             >
               Compare Selected
             </button>
-            <button className="btn btn-outline-secondary" onClick={exportSessions}>
+            <button type="button" className="btn app-theme-btn-outline" onClick={exportSessions}>
               Export
             </button>
             <button
-              className="btn btn-primary"
+              type="button"
+              className="btn app-theme-btn-action"
               onClick={() => setAppliedFilters({ ...filters })}
             >
               Apply Filters
@@ -112,6 +114,36 @@ const SessionsPage = () => {
       {sessions.length === 0 ? (
         <EmptyState title="No sessions" message="No sessions match the filters." />
       ) : (
+        <>
+          <div className="d-lg-none mb-3">
+            {sessions.map((session: any) => (
+              <div key={session.id} className="app-theme-card rounded-3 p-3 mb-2">
+                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                  <div>
+                    <strong style={{ color: "var(--app-text)" }}>ID: {session.id}</strong>
+                    <div style={{ color: "var(--app-text-muted)", fontSize: "0.9rem" }}>
+                      {session.symbol} · {session.strategy_name}
+                    </div>
+                    <div style={{ color: "var(--app-text-muted)", fontSize: "0.85rem" }}>
+                      Return: {session.return_pct ?? "--"} · PnL: {session.pnl ?? "--"}
+                    </div>
+                  </div>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className={`badge ${getSessionStatusClass(session.status)}`}>
+                      {session.status ?? "unknown"}
+                    </span>
+                    <Link
+                      className="btn btn-sm app-theme-btn-action"
+                      href={`/${lng}/trading/sessions/${session.id}`}
+                    >
+                      View
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="d-none d-lg-block">
         <SectionCard title="List of All sessions">
           <div className="table-responsive">
             <table className="table mb-0">
@@ -151,7 +183,7 @@ const SessionsPage = () => {
                     </td>
                     <td>
                       <Link
-                        className="btn btn-sm btn-outline-primary"
+                        className="btn btn-sm app-theme-btn-action"
                         href={`/${lng}/trading/sessions/${session.id}`}
                       >
                         View
@@ -163,6 +195,8 @@ const SessionsPage = () => {
             </table>
           </div>
         </SectionCard>
+          </div>
+        </>
       )}
     </div>
   );

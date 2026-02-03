@@ -22,49 +22,49 @@ const TopDashSection = () => {
     const overview = data?.overall || {};
 
     return (
-        <section className="dashboard-tiles">
+        <section className="dashboard-tiles app-theme-dashboard-tiles">
             <Container fluid={true} className='p-sm-0'>
                 <Row className='g-3'>
-                    <Col xl={3} sm={6}>
-                        <div className="card-tiles">
+                    <Col xs={12} sm={6} xl={3}>
+                        <div className="card-tiles app-theme-card app-theme-card-tile">
                             <div>
                                 <h6>{t("TotalPnL")}</h6>
                                 <h3>{convertCurrency(overview?.total_pnl || 0)}</h3>
                             </div>
-                            <div className="icon-box">
+                            <div className="icon-box app-theme-tile-icon">
                                 <RiWalletLine />
                             </div>
                         </div>
                     </Col>
-                    <Col xl={3} sm={6}>
-                        <div className="card-tiles">
+                    <Col xs={12} sm={6} xl={3}>
+                        <div className="card-tiles app-theme-card app-theme-card-tile">
                             <div>
                                 <h6>{t("TotalTrades")}</h6>
                                 <h3>{overview?.total_trades ?? 0}</h3>
                             </div>
-                            <div className="icon-box">
+                            <div className="icon-box app-theme-tile-icon">
                                 <RiLineChartLine />
                             </div>
                         </div>
                     </Col>
-                    <Col xl={3} sm={6}>
-                        <div className="card-tiles">
+                    <Col xs={12} sm={6} xl={3}>
+                        <div className="card-tiles app-theme-card app-theme-card-tile">
                             <div>
                                 <h6>{t("TotalReturnPct")}</h6>
                                 <h3>{overview?.avg_return_pct ?? 0}</h3>
                             </div>
-                            <div className="icon-box">
+                            <div className="icon-box app-theme-tile-icon">
                                 <RiBarChart2Line />
                             </div>
                         </div>
                     </Col>
-                    <Col xl={3} sm={6} >
-                        <div className="card-tiles">
+                    <Col xs={12} sm={6} xl={3}>
+                        <div className="card-tiles app-theme-card app-theme-card-tile">
                             <div>
                                 <h6>{t("TotalSessions")}</h6>
                                 <h3>{overview?.total_sessions ?? 0}</h3>
                             </div>
-                            <div className="icon-box">
+                            <div className="icon-box app-theme-tile-icon">
                                 <RiGroupLine />
                             </div>
                         </div>

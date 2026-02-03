@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig } from "axios";
 import {
   AUTH_SESSION_EXPIRED_EVENT,
+  AUTH_SUBSCRIPTION_REQUIRED_EVENT,
   HEADER_AUTHORIZATION,
 } from "./constants";
 import {
@@ -80,6 +81,18 @@ client.interceptors.request.use(async (config) => {
 client.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    if (error.response?.status === 402) {
+      const data = error.response?.data as { message?: string; redirect_url?: string } | undefined;
+      if (typeof window !== "undefined") {
+        clearTokens();
+        window.dispatchEvent(
+          new CustomEvent(AUTH_SUBSCRIPTION_REQUIRED_EVENT, {
+            detail: { message: data?.message, redirect_url: data?.redirect_url },
+          })
+        );
+      }
+      return Promise.reject(error);
+    }
     if (error.response?.status !== 401) {
       return Promise.reject(error);
     }

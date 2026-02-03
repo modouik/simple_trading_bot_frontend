@@ -8,6 +8,7 @@ import '@/styles/app.scss';
 
 import I18NextProvider from "@/helper/i18NextContext/I18NextProvider"
 import { AuthProvider } from "@/context/AuthContext"
+import { SubscriptionRequiredModal } from "@/components/subscription/SubscriptionRequiredModal"
 import TanstackWrapper from "@/layout/TanstackWrapper"
 
 export async function generateMetadata() {
@@ -76,6 +77,7 @@ export default function RootLayout({ children, params: { lng } }) {
       <body suppressHydrationWarning={true}>
         <I18NextProvider>
           <AuthProvider>
+            <SubscriptionRequiredModal />
             <TanstackWrapper>{children}</TanstackWrapper>
           </AuthProvider>
         </I18NextProvider>

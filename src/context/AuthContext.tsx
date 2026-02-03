@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { refreshAccessToken } from "@/lib/auth/apiClient";
-import { AUTH_SESSION_EXPIRED_EVENT } from "@/lib/auth/constants";
+import { AUTH_SESSION_EXPIRED_EVENT, AUTH_SUBSCRIPTION_REQUIRED_EVENT } from "@/lib/auth/constants";
 import { clearTokens, getAccessToken, isAccessTokenExpired, setTokens } from "@/lib/auth/tokenStore";
 
 type LoginResult = { ok: true } | { ok: false; error: string };
@@ -89,6 +89,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
+
+      if (res.status === 402) {
+        const data = (await res.json().catch(() => ({}))) as { message?: string; redirect_url?: string };
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent(AUTH_SUBSCRIPTION_REQUIRED_EVENT, {
+              detail: { message: data?.message, redirect_url: data?.redirect_url },
+            })
+          );
+        }
+        return { ok: false, error: data?.message || "Subscription required." };
+      }
 
       if (!res.ok) {
         const message =

@@ -211,7 +211,8 @@ const ExecutiveOverviewPage = () => {
         subtitle="Performance, risk, and market comparison at a glance."
         actions={
           <button
-            className="btn btn-primary"
+            type="button"
+            className="btn app-theme-btn-action"
             onClick={() => setAppliedFilters({ ...filters })}
           >
             Apply Filters
@@ -269,15 +270,22 @@ const ExecutiveOverviewPage = () => {
           <SectionCard title="Suggestions">
             {payload?.suggestions?.suggestions?.length ? (
               <div className="d-flex flex-column gap-3">
-                {payload.suggestions.suggestions.map((item: any, index: number) => (
-                  <div key={`${item.suggestion}-${index}`} className="border rounded p-3">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <strong>{item.suggestion}</strong>
-                      <span className="badge bg-secondary">{item.severity}</span>
+                {payload.suggestions.suggestions.map((item: any, index: number) => {
+                  const confidence = item.confidence ?? 0.7;
+                  const pct = Math.min(100, Math.max(0, Number(confidence) * 100));
+                  return (
+                    <div key={`${item.suggestion}-${index}`} className="app-theme-card rounded-3 p-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <strong style={{ color: "var(--app-text)" }}>{item.suggestion}</strong>
+                        <span className="badge app-theme-badge-action">{item.severity}</span>
+                      </div>
+                      <div className="app-theme-confidence-bar mb-2" style={{ height: 6, background: "var(--app-input-border)", borderRadius: 3 }}>
+                        <div style={{ width: `${pct}%`, height: "100%", background: "var(--app-success)", borderRadius: 3 }} />
+                      </div>
+                      <p className="mb-0" style={{ color: "var(--app-text-muted)", fontSize: "0.9rem" }}>{item.explanation}</p>
                     </div>
-                    <p className="text-muted mb-0">{item.explanation}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <EmptyState

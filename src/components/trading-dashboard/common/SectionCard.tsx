@@ -10,7 +10,7 @@ type SectionCardProps = {
 
 const SectionCard = ({ title, headerRight, children }: SectionCardProps) => (
   <section className="mb-4">
-    <div className="card">
+    <div className="card app-theme-card">
       <div className="card-body">
         <div className="title-header">
           <div className="d-flex align-items-center">

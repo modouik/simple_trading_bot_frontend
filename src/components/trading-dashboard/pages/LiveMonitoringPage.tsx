@@ -77,7 +77,8 @@ const LiveMonitoringPage = () => {
         subtitle="Real-time equity, open positions, and latency signals."
         actions={
           <button
-            className="btn btn-outline-primary"
+            type="button"
+            className="btn app-theme-btn-outline"
             onClick={() => fetchLive(false)}
           >
             Refresh
@@ -96,6 +97,25 @@ const LiveMonitoringPage = () => {
           <div className="badge bg-success">
             Active sessions: {active.length}
           </div>
+        </div>
+      </div>
+
+      <div className="app-theme-risk-card app-theme-card rounded-3 p-3 mb-4">
+        <h6 className="mb-2" style={{ color: "var(--app-text)" }}>Risk Meter</h6>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
+          <div className="app-theme-risk-bar flex-grow-1" style={{ height: 12, borderRadius: 6, background: "var(--app-input-border)", overflow: "hidden", maxWidth: 200 }}>
+            <div
+              className="app-theme-risk-fill h-100"
+              style={{
+                width: `${Math.min(100, Math.max(0, (payload?.risk?.metrics?.max_drawdown_pct ?? 0) * 5))}%`,
+                background: (payload?.risk?.metrics?.max_drawdown_pct ?? 0) > 15 ? "var(--app-danger)" : (payload?.risk?.metrics?.max_drawdown_pct ?? 0) > 8 ? "#F59E0B" : "var(--app-success)",
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
+          <span style={{ color: "var(--app-text-muted)", fontSize: "0.9rem" }}>
+            Volatility · Max DD: {payload?.risk?.metrics?.max_drawdown_pct ?? "--"}%
+          </span>
         </div>
       </div>
 
@@ -170,9 +190,9 @@ const LiveMonitoringPage = () => {
                       <td>{session.mode}</td>
                       <td>{session.number_of_trades ?? "--"}</td>
                       <td>
-                        <div className={getSessionStatusClass(session.status)}>
+                        <span className={`badge app-theme-pulse ${getSessionStatusClass(session.status)}`}>
                           <span>{session.status ?? "unknown"}</span>
-                        </div>
+                        </span>
                       </td>
                     </tr>
                   ))}

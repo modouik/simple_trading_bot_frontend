@@ -6,7 +6,7 @@ import AccountContext from "../../helper/accountContext";
 const MenuList = dynamic(() => import("./MenuList"), {
   ssr: false,
 })
-const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen, drawerOpen, setDrawerOpen }) => {
   const [activeMenu, setActiveMenu] = useState([]);
   const { role, setRole } = useContext(AccountContext)
   let storePermission = {};
@@ -43,10 +43,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       // Clear invalid role from localStorage
       localStorage.removeItem("role");
     }
-  }, [])
+  }, []);
 
-  return (
-    <div className={`sidebar-wrapper ${sidebarOpen ? "close_icon" : ""}`}>
+  const closeDrawer = () => {
+    if (setDrawerOpen) setDrawerOpen(false);
+  };
+
+  const sidebarContent = (
+    <>
       <div id="sidebarEffect" />
       <div className={`${mounted ? 'skeleton-loader' : ""}`}>
         <LogoWrapper setSidebarOpen={setSidebarOpen} />
@@ -58,7 +62,33 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </div>
         </nav>
       </div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: fixed sidebar 260px */}
+      <div className={`sidebar-wrapper app-theme-sidebar app-theme-sidebar-desktop ${sidebarOpen ? "close_icon" : ""}`}>
+        {sidebarContent}
+      </div>
+      {/* Mobile: drawer overlay */}
+      {typeof setDrawerOpen === "function" && (
+        <>
+          <div
+            className={`app-theme-drawer-backdrop d-lg-none ${drawerOpen ? "open" : ""}`}
+            onClick={closeDrawer}
+            aria-hidden="true"
+          />
+          <div className={`app-theme-drawer d-lg-none app-theme-sidebar ${drawerOpen ? "open" : ""}`}>
+            <div className="d-flex justify-content-between align-items-center p-3 border-bottom" style={{ borderColor: "var(--app-card-border)" }}>
+              <span style={{ color: "var(--app-text)", fontWeight: 600 }}>Menu</span>
+              <button type="button" className="btn btn-sm btn-link text-decoration-none" onClick={closeDrawer} aria-label="Close menu">✕</button>
+            </div>
+            {sidebarContent}
+          </div>
+        </>
+      )}
+    </>
   );
 };
 

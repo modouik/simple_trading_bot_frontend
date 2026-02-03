@@ -5,7 +5,7 @@ import RightNav from "./RightNav";
 import SettingContext from "../../helper/settingContext";
 import Image from "next/image";
 
-const Header = ({ sidebarOpen, setMode, setLtr, settingData, setSidebarOpen }) => {
+const Header = ({ sidebarOpen, setSidebarOpen, drawerOpen, setDrawerOpen, setLtr, settingData }) => {
   const { state } = useContext(SettingContext)
   const [mounted, setMounted] = useState(true);
   useEffect(() => {
@@ -18,15 +18,27 @@ const Header = ({ sidebarOpen, setMode, setLtr, settingData, setSidebarOpen }) =
     <div className={`page-header ${sidebarOpen ? "close_icon" : ""}`}>
       <div className={`header-wrapper m-0 ${mounted ? 'skeleton-header' : ""}`}>
         <div className="header-logo-wrapper p-0">
-          <div className="logo-wrapper">
+          <div className="logo-wrapper d-none d-lg-block">
             <Logo settingData={settingData} />
           </div>
-          <ToggleButton setSidebarOpen={setSidebarOpen} />
+          <div className="d-none d-lg-block">
+            <ToggleButton setSidebarOpen={setSidebarOpen} />
+          </div>
+          <button
+            type="button"
+            className="d-lg-none btn btn-link border-0 p-2 app-theme-drawer-trigger"
+            onClick={() => setDrawerOpen((prev) => !prev)}
+            aria-label="Open menu"
+          >
+            <span className="app-theme-hamburger" />
+            <span className="app-theme-hamburger" />
+            <span className="app-theme-hamburger" />
+          </button>
           <a className="d-lg-none d-block mobile-logo">
             <Image src={state?.setDarkLogo?.original_url || "/assets/images/logo/1.png"} height={21} width={120} alt="Dark Logo" />
           </a>
         </div>
-        <RightNav setMode={setMode} setLtr={setLtr} />
+        <RightNav setLtr={setLtr} />
       </div>
     </div>
   );

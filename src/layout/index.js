@@ -17,7 +17,7 @@ const Layout = (props) => {
     }
   }, [props.lng]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mode, setMode] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [ltr, setLtr] = useState(true);
   const router = useRouter();
   const path = usePathname();
@@ -42,10 +42,6 @@ const Layout = (props) => {
   }, []);
   
   useEffect(() => {
-    mode ? document.body.classList.add("dark-only") : document.body.classList.remove("dark-only");
-  }, [mode, ltr]);
-  
-  useEffect(() => {
     if (!mounted) return;
     if (!data1 || !data1.permissions || !Array.isArray(data1.permissions) || data1.permissions.length === 0) {
       return; // Don't redirect if permissions are not loaded yet
@@ -59,16 +55,46 @@ const Layout = (props) => {
   }, [mounted, data1, path, router]);
   return (
     <>
-      <div className="page-wrapper compact-wrapper" id="pageWrapper">
-        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} setMode={setMode} setLtr={setLtr} settingData={'settingData'} />
+      <div className="page-wrapper compact-wrapper app-theme-layout" id="pageWrapper">
+        <Header
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          drawerOpen={drawerOpen}
+          setDrawerOpen={setDrawerOpen}
+          setLtr={setLtr}
+          settingData={'settingData'}
+        />
         <div className="page-body-wrapper">
-          <Sidebar setSidebarOpen={setSidebarOpen} sidebarOpen={sidebarOpen} />
+          <Sidebar
+            setSidebarOpen={setSidebarOpen}
+            sidebarOpen={sidebarOpen}
+            drawerOpen={drawerOpen}
+            setDrawerOpen={setDrawerOpen}
+          />
           <div className="page-body">
             <Container fluid={true}>
               {props.children}
             </Container>
             <Footer />
           </div>
+        </div>
+        <div className="app-theme-bottom-nav d-lg-none" aria-hidden="true">
+          <a href={`/${props.lng}/dashboard`} className="app-theme-nav-item">
+            <span className="icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+          <a href={`/${props.lng}/trading/overview`} className="app-theme-nav-item">
+            <span className="icon">📈</span>
+            <span>Overview</span>
+          </a>
+          <a href={`/${props.lng}/trading/sessions`} className="app-theme-nav-item">
+            <span className="icon">📋</span>
+            <span>Sessions</span>
+          </a>
+          <a href={`/${props.lng}/trading/live`} className="app-theme-nav-item">
+            <span className="icon">●</span>
+            <span>Live</span>
+          </a>
         </div>
       </div>
     </>

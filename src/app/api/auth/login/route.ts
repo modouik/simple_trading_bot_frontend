@@ -30,8 +30,12 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       console.warn("❌ Login failed at backend:", response.status);
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 402) {
+        return NextResponse.json(data, { status: 402 });
+      }
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        data?.message ? { error: data.message, ...data } : { error: "Invalid credentials" },
         { status: response.status }
       );
     }

@@ -66,23 +66,40 @@ const ComparisonPage = () => {
         title="Comparison"
         subtitle="Overlay multiple sessions and compare key metrics."
         actions={
-          <button className="btn btn-primary" onClick={() => loadComparison(ids)}>
+          <button type="button" className="btn app-theme-btn-action" onClick={() => loadComparison(ids)}>
             Compare
           </button>
         }
       />
 
-      <div className="d-flex flex-wrap gap-2 mb-4">
+      <div className="d-none d-lg-flex flex-wrap gap-2 align-items-center mb-4">
         <input
-          className="form-control"
+          className="form-control app-theme-input"
           style={{ maxWidth: 420 }}
           placeholder="Session IDs (comma separated)"
           value={ids}
           onChange={(event) => setIds(event.target.value)}
         />
-        <small className="text-muted align-self-center">
+        <small className="align-self-center" style={{ color: "var(--app-text-muted)" }}>
           Provide at least two session IDs.
         </small>
+      </div>
+      <div className="d-lg-none mb-4">
+        <p className="small mb-2" style={{ color: "var(--app-text-muted)" }}>Session IDs (comma separated)</p>
+        <div className="d-flex gap-2 flex-wrap overflow-auto pb-2">
+          {ids.split(",").map((id) => id.trim()).filter(Boolean).map((id) => (
+            <span key={id} className="badge app-theme-badge-action rounded-pill px-3 py-2">{id}</span>
+          ))}
+          {ids.split(",").map((id) => id.trim()).filter(Boolean).length === 0 && (
+            <span className="text-muted small">Enter IDs above</span>
+          )}
+        </div>
+        <input
+          className="form-control app-theme-input mt-2"
+          placeholder="e.g. 1, 2, 3"
+          value={ids}
+          onChange={(event) => setIds(event.target.value)}
+        />
       </div>
 
       {loading ? (

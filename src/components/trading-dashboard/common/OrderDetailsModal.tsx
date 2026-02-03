@@ -33,7 +33,7 @@ const OrderDetailsModal = ({ isOpen, toggle, order }: OrderDetailsModalProps) =>
       : "#ffc107";
 
   return (
-    <Modal isOpen={isOpen} toggle={toggle} size="lg">
+    <Modal isOpen={isOpen} toggle={toggle} size="lg" className="app-theme-order-modal">
       <ModalHeader toggle={toggle}>
         <div className="d-flex align-items-center gap-2">
           <span>Order Details</span>

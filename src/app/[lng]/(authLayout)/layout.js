@@ -2,11 +2,10 @@
 import React, { useContext, useEffect } from "react";
 import { use } from "react";
 import I18NextContext from "@/helper/i18NextContext";
-import { Col, Container, Row } from "reactstrap";
 
 const AuthLayout = ({ children, params }) => {
   const { i18Lang, setI18Lang } = useContext(I18NextContext);
-  const { lng } = use(params); // Unwrap the promise using React.use()
+  const { lng } = use(params);
 
   useEffect(() => {
     if (i18Lang === "") {
@@ -15,14 +14,18 @@ const AuthLayout = ({ children, params }) => {
   }, [lng]);
 
   return (
-    <section className="log-in-section section-b-space">
-      <Container className="w-100">
-        <Row>
-          <Col xl="5" lg="6" className="me-auto">
+    <section className="app-theme-login-section">
+      <div className="app-theme-login-bg" aria-hidden="true" />
+      <div className="app-theme-login-split">
+        <div className="app-theme-login-left d-none d-lg-block">
+          <div className="app-theme-login-hero" />
+        </div>
+        <div className="app-theme-login-right">
+          <div className="app-theme-login-card app-theme-card">
             {children}
-          </Col>
-        </Row>
-      </Container>
+          </div>
+        </div>
+      </div>
     </section>
   );
 };

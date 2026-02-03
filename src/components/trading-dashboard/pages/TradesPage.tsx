@@ -94,7 +94,7 @@ const TradesPage = () => {
         title="Trades"
         subtitle="Cross-session trades and distribution insights."
         actions={
-          <button className="btn btn-outline-primary" onClick={fetchTrades}>
+          <button type="button" className="btn app-theme-btn-outline" onClick={fetchTrades}>
             Refresh
           </button>
         }
@@ -197,11 +197,7 @@ const TradesPage = () => {
                           <td>{trade.symbol}</td>
                           <td>
                             <span
-                              className="badge"
-                              style={{
-                                backgroundColor: sideColor,
-                                color: "#fff",
-                              }}
+                              className={`badge ${side === "BUY" ? "app-theme-badge-success" : "app-theme-badge-danger"}`}
                             >
                               {side}
                             </span>

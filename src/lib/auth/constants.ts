@@ -41,3 +41,11 @@ export const REFRESH_TOKEN_MAX_AGE_SECONDS =
 
 /** Événement dispatché quand la session expire (refresh échoué). AuthContext écoute et redirige vers login. */
 export const AUTH_SESSION_EXPIRED_EVENT = "auth:session-expired";
+
+/** Payload pour l’événement 402 (abonnement requis / expiré). Affiche un popup au lieu de rediriger. */
+export const AUTH_SUBSCRIPTION_REQUIRED_EVENT = "auth:subscription-required";
+
+export type SubscriptionRequiredDetail = {
+  message?: string;
+  redirect_url?: string;
+};
