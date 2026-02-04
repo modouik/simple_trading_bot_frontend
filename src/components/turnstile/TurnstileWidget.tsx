@@ -3,7 +3,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
-const TURNSTILE_SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+const TURNSTILE_SCRIPT =
+  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+declare global {
+  interface Window {
+    turnstile?: {
+      ready: (fn: () => void) => void;
+      render: (
+        container: string | HTMLElement,
+        options: {
+          sitekey: string;
+          theme?: string;
+          size?: string;
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: (error?: unknown) => void;
+        }
+      ) => string;
+      remove: (widgetId: string) => void;
+    };
+  }
+}
 
 export type TurnstileWidgetProps = {
   siteKey: string;
@@ -22,27 +43,74 @@ export function TurnstileWidget({
   size = "normal",
   className = "",
 }: TurnstileWidgetProps) {
-  const [scriptLoaded, setScriptLoaded] = useState(false);
-  const [callbackId] = useState(() => Math.random().toString(36).slice(2));
-  const callbackName = `__turnstile_verify_${callbackId}`;
-  const expireName = `__turnstile_expire_${callbackId}`;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
   const onVerifyRef = useRef(onVerify);
   const onExpireRef = useRef(onExpire);
+  const [scriptReady, setScriptReady] = useState(false);
   onVerifyRef.current = onVerify;
   onExpireRef.current = onExpire;
 
+  const renderWidget = () => {
+    const win = typeof window !== "undefined" ? window : null;
+    const turnstile = win?.turnstile;
+    const container = containerRef.current;
+    if (!turnstile || !container || !siteKey) return;
+
+    if (widgetIdRef.current) {
+      try {
+        turnstile.remove(widgetIdRef.current);
+      } catch {
+        // ignore
+      }
+      widgetIdRef.current = null;
+    }
+
+    widgetIdRef.current = turnstile.render(container, {
+      sitekey: siteKey,
+      theme,
+      size,
+      callback: (token: string) => {
+        if (token) onVerifyRef.current(token);
+      },
+      "expired-callback": () => {
+        onExpireRef.current?.();
+      },
+      "error-callback": () => {
+        onExpireRef.current?.();
+      },
+    });
+  };
+
   useEffect(() => {
-    (window as unknown as Record<string, (t?: string) => void>)[callbackName] = (token: string) => {
-      if (token) onVerifyRef.current(token);
-    };
-    (window as unknown as Record<string, () => void>)[expireName] = () => {
-      onExpireRef.current?.();
-    };
+    if (!siteKey || !scriptReady || !containerRef.current) return;
+    const win = window as Window & { turnstile?: Window["turnstile"] };
+    if (win.turnstile) {
+      win.turnstile.ready(renderWidget);
+      return () => {
+        if (widgetIdRef.current && win.turnstile) {
+          try {
+            win.turnstile.remove(widgetIdRef.current);
+          } catch {
+            // ignore
+          }
+          widgetIdRef.current = null;
+        }
+      };
+    }
+    renderWidget();
     return () => {
-      delete (window as unknown as Record<string, unknown>)[callbackName];
-      delete (window as unknown as Record<string, unknown>)[expireName];
+      const w = window as Window & { turnstile?: Window["turnstile"] };
+      if (widgetIdRef.current && w.turnstile) {
+        try {
+          w.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // ignore
+        }
+        widgetIdRef.current = null;
+      }
     };
-  }, [callbackName, expireName]);
+  }, [siteKey, scriptReady]);
 
   if (!siteKey) return null;
 
@@ -51,18 +119,14 @@ export function TurnstileWidget({
       <Script
         src={TURNSTILE_SCRIPT}
         strategy="afterInteractive"
-        onLoad={() => setScriptLoaded(true)}
+        onLoad={() => setScriptReady(true)}
       />
-      {scriptLoaded && (
-        <div
-          className={className}
-          data-sitekey={siteKey}
-          data-callback={callbackName}
-          data-expired-callback={expireName}
-          data-theme={theme}
-          data-size={size}
-        />
-      )}
+      <div
+        ref={containerRef}
+        className={className}
+        style={{ minHeight: size === "compact" ? 60 : 65 }}
+        aria-label="Verification captcha"
+      />
     </>
   );
 }
