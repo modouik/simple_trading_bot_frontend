@@ -7,6 +7,9 @@ import { Form, FormGroup, Input, Label } from "reactstrap";
 import { RiUserLine, RiLockLine, RiMailLine } from "react-icons/ri";
 import { AUTH_SUBSCRIPTION_REQUIRED_EVENT } from "@/lib/auth/constants";
 import { setTokens } from "@/lib/auth/tokenStore";
+import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const SignupPage = () => {
   const router = useRouter();
@@ -19,6 +22,7 @@ const SignupPage = () => {
   const [saveUser, setSaveUser] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -29,6 +33,10 @@ const SignupPage = () => {
     }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the verification below.");
       return;
     }
     setLoading(true);
@@ -42,6 +50,7 @@ const SignupPage = () => {
           email: email.trim() || undefined,
           password,
           save_user: saveUser,
+          ...(turnstileToken && { turnstile_token: turnstileToken }),
         }),
       });
 
@@ -176,6 +185,18 @@ const SignupPage = () => {
               <span className="app-theme-toggle-label">Save User</span>
             </label>
           </div>
+          {TURNSTILE_SITE_KEY ? (
+            <div className="col-12">
+              <TurnstileWidget
+                siteKey={TURNSTILE_SITE_KEY}
+                onVerify={setTurnstileToken}
+                onExpire={() => setTurnstileToken(null)}
+                theme="auto"
+                size="normal"
+                className="d-flex justify-content-center"
+              />
+            </div>
+          ) : null}
           {error ? (
             <div className="col-12">
               <p className="mb-0" style={{ color: "var(--app-danger)" }}>

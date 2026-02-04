@@ -5,19 +5,41 @@ import {
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth/constants";
 import { buildHmacHeaders } from "@/lib/auth/hmac";
+import { verifyTurnstileToken } from "@/lib/turnstile/verify";
 
 export async function POST(request: Request) {
   try {
-    const { username, password } = (await request.json()) as {
+    const reqBody = (await request.json()) as {
       username: string;
       password: string;
+      turnstile_token?: string;
     };
+    const { username, password, turnstile_token } = reqBody;
+
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    if (secret) {
+      if (!turnstile_token || typeof turnstile_token !== "string") {
+        return NextResponse.json(
+          { error: "Verification required. Please complete the challenge." },
+          { status: 400 }
+        );
+      }
+      const forwarded = request.headers.get("x-forwarded-for");
+      const remoteip = forwarded?.split(",")[0]?.trim() ?? undefined;
+      const { success } = await verifyTurnstileToken(secret, turnstile_token, remoteip);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Verification failed. Please try again." },
+          { status: 400 }
+        );
+      }
+    }
 
     console.log(`📡 Login attempt for ${username} to ${BACKEND_BASE_URL}`);
 
     const payload = { username, password };
-    const body = JSON.stringify(payload);
-    const hmacHeaders = await buildHmacHeaders(body);
+    const bodyStr = JSON.stringify(payload);
+    const hmacHeaders = await buildHmacHeaders(bodyStr);
 
     const response = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
       method: "POST",
@@ -25,7 +47,7 @@ export async function POST(request: Request) {
         "Content-Type": "application/json",
         ...hmacHeaders,
       },
-      body,
+      body: bodyStr,
     });
 
     if (!response.ok) {

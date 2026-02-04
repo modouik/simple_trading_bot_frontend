@@ -6,10 +6,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # CORRECTION : args est bien indenté sous "build"
       args:
         NEXT_PUBLIC_API_BASE_URL: https://admin.newwaydev.com/api
         NEXT_PUBLIC_MODE: "PRODUCTION"
+        # Clé publique Turnstile (visible côté client) — à remplacer par ta vraie clé
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAACXW0IDRA8cv3Ekb
     restart: always
     ports:
       - "127.0.0.1:8081:3000"
@@ -17,6 +18,8 @@ services:
       - no-new-privileges:true
     environment:
       - NODE_ENV=production
-      # Le secret privé reste ici (Runtime)
-      - HMAC_SECRET=b532ccf4b1e3d6bc2e4275fb02a590f6068c35e2aa687d41455ea6b222b87303
       - COOKIE_SECURE=true
+      # Lu depuis le .env (même répertoire que ce compose)
+      - HMAC_SECRET=${HMAC_SECRET}
+      # Clé secrète Turnstile (vérification serveur login/register)
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}

@@ -6,6 +6,9 @@ import { useParams, useRouter } from "next/navigation";
 import { Form, FormGroup, Input, Label } from "reactstrap";
 import { RiUserLine, RiLockLine } from "react-icons/ri";
 import { useAuth } from "@/context/AuthContext";
+import { TurnstileWidget } from "@/components/turnstile/TurnstileWidget";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -18,12 +21,17 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
   const [saveUser, setSaveUser] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError("");
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the verification below.");
+      return;
+    }
     setLoading(true);
-    const result = await login(username, password);
+    const result = await login(username, password, turnstileToken ?? undefined);
     setLoading(false);
     if (!result.ok && "error" in result) {
       setError(result.error);
@@ -98,6 +106,18 @@ const LoginPage = () => {
               <span className="app-theme-toggle-label">Save User</span>
             </label>
           </div>
+          {TURNSTILE_SITE_KEY ? (
+            <div className="col-12">
+              <TurnstileWidget
+                siteKey={TURNSTILE_SITE_KEY}
+                onVerify={setTurnstileToken}
+                onExpire={() => setTurnstileToken(null)}
+                theme="auto"
+                size="normal"
+                className="d-flex justify-content-center"
+              />
+            </div>
+          ) : null}
           {error ? (
             <div className="col-12">
               <p className="mb-0" style={{ color: "var(--app-danger)" }}>{error}</p>

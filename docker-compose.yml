@@ -7,14 +7,14 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-      - NEXT_PUBLIC_API_BASE_URL=http://192.168.1.6:8080/api
-      - NEXT_PUBLIC_MODE=TESTNET
+        - NEXT_PUBLIC_API_BASE_URL=http://192.168.1.6:8080/api
+        - NEXT_PUBLIC_MODE=TESTNET
+        - NEXT_PUBLIC_TURNSTILE_SITE_KEY=${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
     restart: always
     ports:
-      - "8081:3000" # On map le port 8081 (votre choix) vers le 3000 interne
+      - "8081:3000"
     environment:
       - NODE_ENV=production
-      # Mettez ici l'URL de votre API Backend
-      # Attention : Si c'est pour le navigateur du client, mettez l'IP publique ou DNS
       - HMAC_SECRET=664deafa33e24593d24bb810c5c727fdae5bb4d718d2ea6e979e57daf6d8e275
       - COOKIE_SECURE=false
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}

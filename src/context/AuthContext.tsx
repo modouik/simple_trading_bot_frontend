@@ -11,7 +11,7 @@ type LoginResult = { ok: true } | { ok: false; error: string };
 type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (username: string, password: string) => Promise<LoginResult>;
+  login: (username: string, password: string, turnstileToken?: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
 };
 
@@ -82,12 +82,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
-  const login = async (username: string, password: string): Promise<LoginResult> => {
+  const login = async (
+    username: string,
+    password: string,
+    turnstileToken?: string
+  ): Promise<LoginResult> => {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          ...(turnstileToken && { turnstile_token: turnstileToken }),
+        }),
       });
 
       if (res.status === 402) {
@@ -103,10 +111,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         const message =
-          res.status === 401 || res.status === 403
-            ? "Invalid credentials."
-            : "Login failed.";
+          data?.error ||
+          (res.status === 401 || res.status === 403 ? "Invalid credentials." : "Login failed.");
         return { ok: false, error: message };
       }
 

@@ -5,27 +5,43 @@ import {
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth/constants";
 import { buildHmacHeaders } from "@/lib/auth/hmac";
+import { verifyTurnstileToken } from "@/lib/turnstile/verify";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const {
-      username,
-      email,
-      password,
-      save_user,
-    } = body as {
+    const body = (await request.json()) as {
       username: string;
       email?: string;
       password: string;
       save_user?: boolean;
+      turnstile_token?: string;
     };
+    const { username, email, password, save_user, turnstile_token } = body;
 
     if (!username || !password) {
       return NextResponse.json(
         { error: "Username and password are required." },
         { status: 400 }
       );
+    }
+
+    const secret = process.env.TURNSTILE_SECRET_KEY;
+    if (secret) {
+      if (!turnstile_token || typeof turnstile_token !== "string") {
+        return NextResponse.json(
+          { error: "Verification required. Please complete the challenge." },
+          { status: 400 }
+        );
+      }
+      const forwarded = request.headers.get("x-forwarded-for");
+      const remoteip = forwarded?.split(",")[0]?.trim() ?? undefined;
+      const { success } = await verifyTurnstileToken(secret, turnstile_token, remoteip);
+      if (!success) {
+        return NextResponse.json(
+          { error: "Verification failed. Please try again." },
+          { status: 400 }
+        );
+      }
     }
 
     const payload = {

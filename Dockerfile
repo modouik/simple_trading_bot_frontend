@@ -12,13 +12,13 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# --- AJOUTEZ CECI ---
-# Déclarez les arguments que vous voulez passer
+# --- Build-time (NEXT_PUBLIC_* sont inclus dans le bundle client) ---
 ARG NEXT_PUBLIC_API_BASE_URL=http://build-placeholder
 ARG NEXT_PUBLIC_MODE=TESTNET
-# Transformez-les en variables d'environnement pour le build
+ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_MODE=$NEXT_PUBLIC_MODE
+ENV NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY
 # On désactive la télémétrie Next.js
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN npm run build
