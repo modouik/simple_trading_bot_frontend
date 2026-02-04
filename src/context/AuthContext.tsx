@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { refreshAccessToken } from "@/lib/auth/apiClient";
 import { AUTH_SESSION_EXPIRED_EVENT, AUTH_SUBSCRIPTION_REQUIRED_EVENT } from "@/lib/auth/constants";
 import { clearTokens, getAccessToken, isAccessTokenExpired, setTokens } from "@/lib/auth/tokenStore";
@@ -19,12 +19,26 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const bootstrap = async () => {
     setIsLoading(true);
     try {
+      const isAuthPage =
+        pathname != null &&
+        typeof pathname === "string" &&
+        (pathname.includes("/login") || pathname.includes("/signup"));
+      if (isAuthPage) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+      if (pathname == null) {
+        setIsLoading(false);
+        return;
+      }
       if (getAccessToken() && !isAccessTokenExpired()) {
         setIsAuthenticated(true);
         return;
@@ -57,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     bootstrap();
-  }, []);
+  }, [pathname]);
 
   // Quand la session expire (refresh échoué dans apiClient), déconnecter et rediriger vers login
   useEffect(() => {

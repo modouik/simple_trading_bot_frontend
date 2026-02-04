@@ -4,18 +4,21 @@ import SettingContext from '.';
 import { updateSetting } from '../../utils/axiosUtils/API';
 import request from '../../utils/axiosUtils';
 import { settingReducer } from '../../utils/allReducers';
+import { useAuth } from '@/context/AuthContext';
 
 const SettingProvider = (props) => {
+    const { isAuthenticated } = useAuth();
     const [currencySymbol, setCurrencySymbol] = useState('')
     const [settingObj, setSettingObj] = useState({})
     const [searchSidebarMenu, setSearchSidebarMenu] = useState([])
     const [state, dispatch] = useReducer(settingReducer, { setFavicon: "", setLogo: "", setResponsiveImage: "", setTitle: "", setTagline: "", isMultiVendor: false, setDelivery: {}, setCopyRight: "", setDarkLight: "", setDarkLogo: "", setLightLogo: "", setTinyLogo: "" })
-    const { data, isLoading, refetch } = useQuery({queryKey: [updateSetting], queryFn: () => request({ url: updateSetting }),
-        enabled: false, refetchOnWindowFocus: false, select: (res) => res?.data
+    const { data, isLoading } = useQuery({
+        queryKey: [updateSetting],
+        queryFn: () => request({ url: updateSetting }),
+        enabled: isAuthenticated,
+        refetchOnWindowFocus: false,
+        select: (res) => res?.data,
     });
-    useEffect(() => {
-        refetch()
-    }, [])
     useEffect(() => {
         if (data) {
             setSettingObj(data?.values)

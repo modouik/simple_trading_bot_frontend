@@ -4,12 +4,18 @@ import AccountContext from '.'
 import request from '../../utils/axiosUtils';
 import { selfData } from '../../utils/axiosUtils/API';
 import { useCookies } from 'react-cookie';
+import { useAuth } from '@/context/AuthContext';
 
 const AccountProvider = (props) => {
+    const { isAuthenticated } = useAuth();
     const [cookies] = useCookies(["uat"]);
     const [role, setRole] = useState('')
-    const { data, isLoading } = useQuery({queryKey: [selfData], queryFn: () => request({ url: selfData }),
-        refetchOnWindowFocus: false, select: (res) => { return res?.data }
+    const { data, isLoading } = useQuery({
+        queryKey: [selfData],
+        queryFn: () => request({ url: selfData }),
+        enabled: isAuthenticated,
+        refetchOnWindowFocus: false,
+        select: (res) => res?.data,
     });
     const [accountData, setAccountData] = useState()
     const [accountContextData, setAccountContextData] = useState({

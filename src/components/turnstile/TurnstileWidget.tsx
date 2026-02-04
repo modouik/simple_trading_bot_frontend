@@ -9,7 +9,6 @@ const TURNSTILE_SCRIPT =
 declare global {
   interface Window {
     turnstile?: {
-      ready: (fn: () => void) => void;
       render: (
         container: string | HTMLElement,
         options: {
@@ -82,22 +81,10 @@ export function TurnstileWidget({
     });
   };
 
+  // Call turnstile.render() directly when script is ready. Do not use turnstile.ready()
+  // when the script is loaded with async/defer (Next.js Script uses async loading).
   useEffect(() => {
     if (!siteKey || !scriptReady || !containerRef.current) return;
-    const win = window as Window & { turnstile?: Window["turnstile"] };
-    if (win.turnstile) {
-      win.turnstile.ready(renderWidget);
-      return () => {
-        if (widgetIdRef.current && win.turnstile) {
-          try {
-            win.turnstile.remove(widgetIdRef.current);
-          } catch {
-            // ignore
-          }
-          widgetIdRef.current = null;
-        }
-      };
-    }
     renderWidget();
     return () => {
       const w = window as Window & { turnstile?: Window["turnstile"] };
