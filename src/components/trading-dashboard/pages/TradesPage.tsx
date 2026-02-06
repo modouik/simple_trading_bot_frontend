@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { tradesApi } from "@/lib/api/tradingDashboardApi";
+import { formatNumber } from "@/utils/numberFormat";
 import PageHeader from "../common/PageHeader";
 import LoadingState from "../common/LoadingState";
 import ErrorState from "../common/ErrorState";
@@ -64,16 +65,17 @@ const TradesPage = () => {
   }, [trades]);
 
   const totalTrades = trades.length;
-  const totalQuoteVolume = trades
-    .reduce(
-      (sum: number, trade: any) =>
-        sum + Number(trade.quote_quantity ?? trade.quantity ?? 0),
-      0
-    )
-    .toFixed(4);
-  const totalFees = trades
-    .reduce((sum: number, trade: any) => sum + Number(trade.fee ?? 0), 0)
-    .toFixed(6);
+  const totalQuoteVolumeNum = trades.reduce(
+    (sum: number, trade: any) =>
+      sum + Number(trade.quote_quantity ?? trade.quantity ?? 0),
+    0
+  );
+  const totalQuoteVolume = formatNumber(totalQuoteVolumeNum, 8);
+  const totalFeesNum = trades.reduce(
+    (sum: number, trade: any) => sum + Number(trade.fee ?? 0),
+    0
+  );
+  const totalFees = formatNumber(totalFeesNum, 8);
   const uniqueSessions = new Set(
     trades
       .map((t: any) => t.trading_session_id)

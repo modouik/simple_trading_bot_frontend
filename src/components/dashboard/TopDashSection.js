@@ -7,6 +7,7 @@ import { Col, Container, Row } from 'reactstrap';
 import SettingContext from '../../helper/settingContext';
 import request from "../../utils/axiosUtils";
 import { AnalyticsOverviewAPI } from '../../utils/axiosUtils/API';
+import { formatNumber } from "@/utils/numberFormat";
 
 const TopDashSection = () => {
     const { i18Lang } = useContext(I18NextContext);
@@ -51,7 +52,7 @@ const TopDashSection = () => {
                         <div className="card-tiles app-theme-card app-theme-card-tile">
                             <div>
                                 <h6>{t("TotalReturnPct")}</h6>
-                                <h3>{overview?.avg_return_pct ?? 0}</h3>
+                                <h3>{formatNumber(overview?.avg_return_pct ?? 0, 8)}</h3>
                             </div>
                             <div className="icon-box app-theme-tile-icon">
                                 <RiBarChart2Line />

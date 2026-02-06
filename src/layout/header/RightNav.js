@@ -10,6 +10,7 @@ import { useContext } from "react";
 import I18NextContext from "@/helper/i18NextContext";
 import { useTranslation } from "@/app/i18n/client";
 import { useTheme } from "@/context/ThemeContext";
+import { ModeToggle } from "@/components/mode/ModeToggle";
 
 const RightNav = ({ setLtr }) => {
   const { i18Lang } = useContext(I18NextContext);
@@ -27,6 +28,9 @@ const RightNav = ({ setLtr }) => {
       <ul className="nav-menus" ref={ref}>
         <Language isComponentVisible={isComponentVisible} setIsComponentVisible={setIsComponentVisible} />
         <NotificationBox isComponentVisible={isComponentVisible} setIsComponentVisible={setIsComponentVisible} />
+        <li>
+          <ModeToggle />
+        </li>
         <li>
           <div className="mode">
             <button

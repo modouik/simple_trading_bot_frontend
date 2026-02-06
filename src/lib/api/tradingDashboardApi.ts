@@ -46,3 +46,23 @@ export const suggestionsApi = {
   global: (params?: Record<string, unknown>) =>
     apiGet("/suggestions/global", params),
 };
+
+export type ScannerPair = {
+  symbol: string;
+  volatility: number;
+  quote_volume: number;
+  price_change_percent: number;
+  high_price: string;
+  low_price: string;
+};
+
+export type ScannerResponse = {
+  quote_asset: string;
+  window_size: string;
+  pairs: ScannerPair[];
+};
+
+export const scannerApi = {
+  getTopPairs: (params?: { asset?: string; window?: string }) =>
+    apiGet<ScannerResponse>("/scanner", params as Record<string, unknown>),
+};

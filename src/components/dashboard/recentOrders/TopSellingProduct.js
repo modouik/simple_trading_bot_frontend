@@ -12,6 +12,7 @@ import { dateFormate } from '../../../utils/customFunctions/DateFormate'
 import NoDataFound from '../../commonComponent/NoDataFound'
 import I18NextContext from '@/helper/i18NextContext'
 import { useTranslation } from '@/app/i18n/client'
+import { formatNumber } from '@/utils/numberFormat'
 
 
 const TopSellingProduct = ({ setFieldValue, values }) => {
@@ -75,7 +76,7 @@ const TopSellingProduct = ({ setFieldValue, values }) => {
                                     </td>
                                     <td>
                                         <h6>{'amount'}</h6>
-                                        <h5>{elem?.order_amount.toFixed(2)}</h5>
+                                        <h5>{formatNumber(elem?.order_amount ?? 0, 8)}</h5>
                                     </td>
                                 </tr>
                             ))

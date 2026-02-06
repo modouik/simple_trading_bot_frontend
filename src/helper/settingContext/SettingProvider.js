@@ -5,6 +5,7 @@ import { updateSetting } from '../../utils/axiosUtils/API';
 import request from '../../utils/axiosUtils';
 import { settingReducer } from '../../utils/allReducers';
 import { useAuth } from '@/context/AuthContext';
+import { formatNumber } from '@/utils/numberFormat';
 
 const SettingProvider = (props) => {
     const { isAuthenticated } = useAuth();
@@ -32,8 +33,8 @@ const SettingProvider = (props) => {
         let amount = Number(value)
         amount = amount * settingObj?.general?.default_currency?.exchange_rate
         if (position == 'before_price') {
-            return `${symbol} ${amount.toFixed(2)}`
-        } else return `${amount.toFixed(2)} ${symbol}`
+            return `${symbol} ${formatNumber(amount, 8)}`
+        } else return `${formatNumber(amount, 8)} ${symbol}`
     }, [settingObj])
 
     useEffect(() => {

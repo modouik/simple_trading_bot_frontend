@@ -8,6 +8,7 @@ import CartProvider from "@/helper/cartContext/CartProvider";
 import { CookiesProvider } from "react-cookie";
 import CategoryProvider from "@/helper/categoryContext/CategoryProvider";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { ModeProvider } from "@/context/ModeContext";
 
 const TanstackWrapper = ({ children }) => {
   const [queryClient] = useState(() => new QueryClient());
@@ -20,7 +21,9 @@ const TanstackWrapper = ({ children }) => {
               <AccountProvider>
                 <BadgeProvider>
                   <CategoryProvider>
-                    <CartProvider>{children}</CartProvider>
+                    <ModeProvider>
+                      <CartProvider>{children}</CartProvider>
+                    </ModeProvider>
                   </CategoryProvider>
                 </BadgeProvider>
               </AccountProvider>
@@ -33,3 +36,4 @@ const TanstackWrapper = ({ children }) => {
 };
 
 export default TanstackWrapper;
+

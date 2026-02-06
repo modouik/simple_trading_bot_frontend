@@ -4,6 +4,7 @@ import { Modal, ModalHeader, ModalBody, ModalFooter, Button } from "reactstrap";
 import { normalizeSide, toEpochMillis } from "../utils";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { formatNumber } from "@/utils/numberFormat";
 
 type TradeDetailsModalProps = {
   isOpen: boolean;
@@ -23,16 +24,20 @@ const TradeDetailsModal = ({ isOpen, toggle, trade }: TradeDetailsModalProps) =>
     : "--";
 
   const sideColor = side === "BUY" ? "#198754" : "#dc3545";
-  const totalValue = trade.price && trade.quantity 
-    ? (Number(trade.price) * Number(trade.quantity)).toFixed(8)
-    : "--";
-  const totalAfterFee = trade.side?.toUpperCase() === "BUY"
-    ? totalValue !== "--" && trade.fee
-      ? (Number(totalValue) + Number(trade.fee)).toFixed(8)
-      : "--"
-    : totalValue !== "--" && trade.fee
-    ? (Number(totalValue) - Number(trade.fee)).toFixed(8)
-    : "--";
+  const rawTotalValue =
+    trade.price && trade.quantity
+      ? Number(trade.price) * Number(trade.quantity)
+      : null;
+  const totalValue =
+    rawTotalValue !== null ? formatNumber(rawTotalValue, 8) : "--";
+  const rawTotalAfterFee =
+    rawTotalValue !== null && trade.fee
+      ? trade.side?.toUpperCase() === "BUY"
+        ? rawTotalValue + Number(trade.fee)
+        : rawTotalValue - Number(trade.fee)
+      : null;
+  const totalAfterFee =
+    rawTotalAfterFee !== null ? formatNumber(rawTotalAfterFee, 8) : "--";
 
   return (
     <Modal isOpen={isOpen} toggle={toggle} size="lg" className="app-theme-trade-modal">
@@ -141,8 +146,11 @@ const TradeDetailsModal = ({ isOpen, toggle, trade }: TradeDetailsModalProps) =>
                 </div>
                 <div className="col-md-6 mb-2">
                   <strong>Fee Percentage:</strong>{" "}
-                  {totalValue !== "--" && trade.fee
-                    ? ((Number(trade.fee) / Number(totalValue)) * 100).toFixed(4)
+                  {rawTotalValue !== null && trade.fee
+                    ? formatNumber(
+                        (Number(trade.fee) / rawTotalValue) * 100,
+                        8
+                      )
                     : "--"}
                   %
                 </div>

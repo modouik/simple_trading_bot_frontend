@@ -11,7 +11,20 @@ import {
   setTokens,
 } from "./tokenStore";
 
-const MODE = process.env.NEXT_PUBLIC_MODE ?? process.env.MODE ?? "TESTNET";
+type ApiMode = "TESTNET" | "PRODUCTION";
+
+const DEFAULT_MODE: ApiMode = "PRODUCTION";
+
+let currentMode: ApiMode =
+  (process.env.NEXT_PUBLIC_MODE as ApiMode | undefined) ??
+  (process.env.MODE as ApiMode | undefined) ??
+  DEFAULT_MODE;
+
+export const getApiMode = (): ApiMode => currentMode;
+
+export const setApiMode = (mode: ApiMode) => {
+  currentMode = mode;
+};
 
 /** BFF proxy: all API calls go through Next.js server; HMAC is signed server-side only. */
 const client = axios.create({
@@ -60,17 +73,19 @@ client.interceptors.request.use(async (config) => {
   }
 
   // Inject mode in GET query params
+  const mode = getApiMode();
+
   if (config.method?.toUpperCase() === "GET") {
     config.params = {
       ...(config.params || {}),
-      mode: MODE,
+      mode,
     };
   } else {
     // Inject mode into body for POST/PUT/PATCH/DELETE
     if (config.data == null || typeof config.data !== "object") {
-      config.data = { mode: MODE };
+      config.data = { mode };
     } else if (!("mode" in (config.data as any))) {
-      (config.data as any).mode = MODE;
+      (config.data as any).mode = mode;
     }
   }
 

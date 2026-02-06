@@ -8,6 +8,7 @@ import WithdrawModal from './WithdrawModal';
 import { useQuery } from '@tanstack/react-query';
 import request from '../../utils/axiosUtils';
 import I18NextContext from '@/helper/i18NextContext';
+import { formatNumber } from '@/utils/numberFormat';
 
 const VendorDetails = () => {
     const { i18Lang } = useContext(I18NextContext);
@@ -41,13 +42,13 @@ const VendorDetails = () => {
                         <Card className="pending-balance-sec">
                             <CardBody>
                                 <div className="wallet-sec theme-form">
-                                    <div className="wallet-amount w-100">
+                                        <div className="wallet-amount w-100">
                                         <div className="wallet-icon">
                                             <RiWalletLine />
                                         </div>
                                         <div>
                                             <h2 className="fw-semibold">
-                                                <span>{`${(data?.balance || 0).toFixed(2)}`}</span>
+                                                <span>{formatNumber(data?.balance || 0, 8)}</span>
                                             </h2>
                                             <h5>{t("PendingBalance")}</h5>
                                         </div>

@@ -6,6 +6,7 @@ import {
   analyticsApi,
   suggestionsApi,
 } from "@/lib/api/tradingDashboardApi";
+import { formatNumber } from "@/utils/numberFormat";
 import PageHeader from "../common/PageHeader";
 import FiltersBar from "../common/FiltersBar";
 import LoadingState from "../common/LoadingState";
@@ -121,12 +122,12 @@ const ExecutiveOverviewPage = () => {
       xaxis: { categories: equityCategories },
       yaxis: {
         labels: {
-          formatter: (val: number) => val.toFixed(2),
+          formatter: (val: number) => formatNumber(val, 8),
         },
       },
       tooltip: {
         y: {
-          formatter: (val: number) => val.toFixed(2),
+          formatter: (val: number) => formatNumber(val, 8),
         },
       },
       colors: ["#0d6efd"],
@@ -155,12 +156,12 @@ const ExecutiveOverviewPage = () => {
       xaxis: { categories: drawdownCategories },
       yaxis: {
         labels: {
-          formatter: (val: number) => val.toFixed(2),
+          formatter: (val: number) => formatNumber(val, 8),
         },
       },
       tooltip: {
         y: {
-          formatter: (val: number) => val.toFixed(2),
+          formatter: (val: number) => formatNumber(val, 8),
         },
       },
       colors: ["#dc3545"],

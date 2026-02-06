@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { sessionsApi, suggestionsApi, tradesApi } from "@/lib/api/tradingDashboardApi";
+import { formatNumber } from "@/utils/numberFormat";
 import PageHeader from "../common/PageHeader";
 import LoadingState from "../common/LoadingState";
 import ErrorState from "../common/ErrorState";
@@ -154,7 +155,7 @@ const SessionDetailPage = () => {
   const feeByAsset = groupFeesByAsset(trades);
   const feeSummary = Object.keys(feeByAsset).length
     ? Object.entries(feeByAsset)
-        .map(([asset, total]) => `${asset}: ${total.toFixed(6)}`)
+        .map(([asset, total]) => `${asset}: ${formatNumber(total as number, 8)}`)
         .join(" · ")
     : "--";
 
@@ -195,7 +196,7 @@ const SessionDetailPage = () => {
         <div className="col-12 col-md-6 col-xl-4">
           <DashboardTile
             label="Quote Volume"
-            value={totalQuote.toFixed(4)}
+            value={formatNumber(totalQuote, 8)}
             icon={<RiWalletLine />}
           />
         </div>

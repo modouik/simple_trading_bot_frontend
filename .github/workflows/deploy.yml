@@ -41,5 +41,6 @@ jobs:
           # 3. On lance le nouveau conteneur tout neuf
           docker compose -f docker-compose.prod.yml up -d
           
+          
           # 4. On nettoie les vieilles images qui prennent de la place
-          docker image prune -f
+          docker system prune -f
