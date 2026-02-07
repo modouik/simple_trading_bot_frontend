@@ -6,6 +6,7 @@ import {
   RiStockLine,
   RiPulseLine,
   RiRadarLine,
+  RiWalletLine,
 } from "react-icons/ri";
 
 const MENUITEMS = [
@@ -62,6 +63,13 @@ const MENUITEMS = [
         displayTitle: "Scanner",
         icon: <RiRadarLine />,
         path: "/trading/scanner",
+        type: "link",
+      },
+      {
+        title: "Wallet",
+        displayTitle: "Wallet",
+        icon: <RiWalletLine />,
+        path: "/trading/balance",
         type: "link",
       },
     ],

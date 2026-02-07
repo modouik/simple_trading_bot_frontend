@@ -5,3 +5,4 @@ export { default as TradesPage } from "./pages/TradesPage";
 export { default as ComparisonPage } from "./pages/ComparisonPage";
 export { default as LiveMonitoringPage } from "./pages/LiveMonitoringPage";
 export { default as ScannerPage } from "./pages/ScannerPage";
+export { default as WalletPage } from "./pages/WalletPage";

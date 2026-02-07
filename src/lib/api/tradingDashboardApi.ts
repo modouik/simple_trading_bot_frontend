@@ -66,3 +66,28 @@ export const scannerApi = {
   getTopPairs: (params?: { asset?: string; window?: string }) =>
     apiGet<ScannerResponse>("/scanner", params as Record<string, unknown>),
 };
+
+export type BalanceRecord = {
+  id: number;
+  user_id: string;
+  snapshot: Array<{ asset: string; free: number; locked: number }>;
+  total_usd: string;
+  total_btc: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BalancesResponse = {
+  data: BalanceRecord[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+};
+
+export const balancesApi = {
+  list: (params?: { per_page?: number }) =>
+    apiGet<BalancesResponse>("/balances", params as Record<string, unknown>),
+};
