@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import {
   BACKEND_BASE_URL,
+  DEVICE_ID_COOKIE,
+  DYNAMIC_HMAC_SECRET_COOKIE,
   REFRESH_TOKEN_COOKIE,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth/constants";
 import { buildHmacHeaders } from "@/lib/auth/hmac";
 import { verifyTurnstileToken } from "@/lib/turnstile/verify";
+
+function getOrCreateDeviceId(cookieValue: string | undefined): string {
+  if (cookieValue && cookieValue.length > 0) return cookieValue;
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -44,11 +54,14 @@ export async function POST(request: Request) {
       }
     }
 
+    const cookieStore = await cookies();
+    const deviceId = getOrCreateDeviceId(cookieStore.get(DEVICE_ID_COOKIE)?.value);
     const payload = {
       username: username.trim(),
       ...(email !== undefined && email !== "" && { email: email.trim() }),
       password,
       ...(save_user !== undefined && { save_user: !!save_user }),
+      device_id: deviceId,
     };
     const bodyStr = JSON.stringify(payload);
     const hmacHeaders = await buildHmacHeaders(bodyStr);
@@ -81,8 +94,8 @@ export async function POST(request: Request) {
       expires_in: data.expires_in,
     });
 
+    const isSecureEnvironment = process.env.COOKIE_SECURE === "true";
     if (data.refresh_token) {
-      const isSecureEnvironment = process.env.COOKIE_SECURE === "true";
       res.cookies.set(REFRESH_TOKEN_COOKIE, data.refresh_token, {
         httpOnly: true,
         secure: isSecureEnvironment,
@@ -91,6 +104,22 @@ export async function POST(request: Request) {
         maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
       });
     }
+    if (data.dynamic_hmac_secret) {
+      res.cookies.set(DYNAMIC_HMAC_SECRET_COOKIE, data.dynamic_hmac_secret, {
+        httpOnly: true,
+        secure: isSecureEnvironment,
+        sameSite: "strict",
+        path: "/",
+        maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
+      });
+    }
+    res.cookies.set(DEVICE_ID_COOKIE, deviceId, {
+      httpOnly: true,
+      secure: isSecureEnvironment,
+      sameSite: "strict",
+      path: "/",
+      maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
+    });
 
     return res;
   } catch (error) {

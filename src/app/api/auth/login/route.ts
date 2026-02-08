@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import {
   BACKEND_BASE_URL,
+  DEVICE_ID_COOKIE,
+  DYNAMIC_HMAC_SECRET_COOKIE,
   REFRESH_TOKEN_COOKIE,
   REFRESH_TOKEN_MAX_AGE_SECONDS,
 } from "@/lib/auth/constants";
 import { buildHmacHeaders } from "@/lib/auth/hmac";
 import { verifyTurnstileToken } from "@/lib/turnstile/verify";
+
+function getOrCreateDeviceId(cookieValue: string | undefined): string {
+  if (cookieValue && cookieValue.length > 0) return cookieValue;
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -37,7 +47,9 @@ export async function POST(request: Request) {
 
     console.log(`📡 Login attempt for ${username} to ${BACKEND_BASE_URL}`);
 
-    const payload = { username, password };
+    const cookieStore = await cookies();
+    const deviceId = getOrCreateDeviceId(cookieStore.get(DEVICE_ID_COOKIE)?.value);
+    const payload = { username, password, device_id: deviceId };
     const bodyStr = JSON.stringify(payload);
     const hmacHeaders = await buildHmacHeaders(bodyStr);
 
@@ -67,6 +79,7 @@ export async function POST(request: Request) {
       refresh_token: string;
       token_type: string;
       expires_in: number;
+      dynamic_hmac_secret?: string;
     };
 
     const res = NextResponse.json({
@@ -75,14 +88,9 @@ export async function POST(request: Request) {
       expires_in: data.expires_in,
     });
 
+    const isSecureEnvironment = process.env.COOKIE_SECURE === "true";
+
     if (data.refresh_token) {
-      // CORRECTION INFRASTRUCTURE :
-      // On regarde la variable COOKIE_SECURE définie dans docker-compose
-      // Si elle n'est pas définie, on assume false par sécurité pour éviter les blocages locaux
-      const isSecureEnvironment = process.env.COOKIE_SECURE === "true";
-
-      console.log(`🍪 Setting cookie. Secure mode: ${isSecureEnvironment} (Mode Affichage: ${process.env.NEXT_PUBLIC_MODE})`);
-
       res.cookies.set(REFRESH_TOKEN_COOKIE, data.refresh_token, {
         httpOnly: true,
         secure: isSecureEnvironment,
@@ -91,6 +99,23 @@ export async function POST(request: Request) {
         maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
       });
     }
+
+    if (data.dynamic_hmac_secret) {
+      res.cookies.set(DYNAMIC_HMAC_SECRET_COOKIE, data.dynamic_hmac_secret, {
+        httpOnly: true,
+        secure: isSecureEnvironment,
+        sameSite: "strict",
+        path: "/",
+        maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
+      });
+    }
+    res.cookies.set(DEVICE_ID_COOKIE, deviceId, {
+      httpOnly: true,
+      secure: isSecureEnvironment,
+      sameSite: "strict",
+      path: "/",
+      maxAge: REFRESH_TOKEN_MAX_AGE_SECONDS,
+    });
 
     return res;
   } catch (error) {

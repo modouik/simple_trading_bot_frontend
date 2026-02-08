@@ -43,8 +43,13 @@ export const generateNonce = () => {
 export const generateTimestamp = () =>
   Math.floor(Date.now() / 1000).toString();
 
-export const signHmac = async (body: string, nonce: string, timestamp: string) => {
-  const secret = HMAC_SECRET;
+/** Sign with a specific secret (server-side: for proxy using cookie dynamic secret). */
+export const signHmacWithSecret = async (
+  body: string,
+  nonce: string,
+  timestamp: string,
+  secret: string
+) => {
   const payload = `${body}${nonce}${timestamp}`;
   if (typeof window === "undefined") {
     return signInNode(payload, secret);
@@ -52,10 +57,26 @@ export const signHmac = async (body: string, nonce: string, timestamp: string) =
   return signInBrowser(payload, secret);
 };
 
+export const signHmac = async (body: string, nonce: string, timestamp: string) => {
+  return signHmacWithSecret(body, nonce, timestamp, HMAC_SECRET);
+};
+
 export const buildHmacHeaders = async (body: string) => {
   const nonce = generateNonce();
   const timestamp = generateTimestamp();
   const signature = await signHmac(body, nonce, timestamp);
+  return {
+    [HEADER_NONCE]: nonce,
+    [HEADER_TIMESTAMP]: timestamp,
+    [HEADER_SIGNATURE]: signature,
+  };
+};
+
+/** Build HMAC headers with a given secret (server-only, e.g. proxy with cookie secret). */
+export const buildHmacHeadersWithSecret = async (body: string, secret: string) => {
+  const nonce = generateNonce();
+  const timestamp = generateTimestamp();
+  const signature = await signHmacWithSecret(body, nonce, timestamp, secret);
   return {
     [HEADER_NONCE]: nonce,
     [HEADER_TIMESTAMP]: timestamp,

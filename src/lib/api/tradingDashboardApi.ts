@@ -70,6 +70,7 @@ export const scannerApi = {
 export type BalanceRecord = {
   id: number;
   user_id: string;
+  mode?: string;
   snapshot: Array<{ asset: string; free: number; locked: number }>;
   total_usd: string;
   total_btc: string;

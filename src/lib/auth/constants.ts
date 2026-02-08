@@ -14,8 +14,16 @@ export const BACKEND_BASE_URL = trimmed.endsWith("/api")
   ? trimmed
   : `${trimmed}/api`;
 
-/** Server-only: never use NEXT_PUBLIC_HMAC_SECRET; set HMAC_SECRET at runtime (e.g. Docker -e). */
+/**
+ * Server-only: never use NEXT_PUBLIC_ prefix for HMAC; set HMAC_SECRET at runtime (e.g. Docker -e).
+ * Dynamic per-session secret is stored in HTTP-only cookie DYNAMIC_HMAC_SECRET_COOKIE.
+ */
 export const HMAC_SECRET = process.env.HMAC_SECRET || "";
+
+/** HTTP-only cookie name for dynamic HMAC secret (per-device from backend login/register). */
+export const DYNAMIC_HMAC_SECRET_COOKIE = "dynamic_hmac_secret";
+/** Cookie name for device id sent to backend (HTTP-only, SameSite=Strict). */
+export const DEVICE_ID_COOKIE = "backend_device_id";
 
 export const HEADER_AUTHORIZATION = "Authorization";
 export const HEADER_NONCE = "X-Nonce";

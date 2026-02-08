@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { balancesApi, type BalanceRecord } from "@/lib/api/tradingDashboardApi";
+import { useMode } from "@/context/ModeContext";
 import { format } from "date-fns";
 
 const SLATE_800 = "#1e293b";
@@ -39,6 +40,7 @@ function formatBtc(value: number): string {
 }
 
 const BalanceChart = () => {
+  const { mode } = useMode();
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ const BalanceChart = () => {
     setLoading(true);
     setError(null);
     try {
+      // mode is injected by apiClient for GET; list uses current app mode so chart shows balance for selected mode
       const res = await balancesApi.list({ per_page: 200 });
       const records = (res?.data ?? []) as BalanceRecord[];
       const points: ChartPoint[] = records.map((r) => ({
@@ -67,7 +70,7 @@ const BalanceChart = () => {
 
   useEffect(() => {
     fetchBalances();
-  }, [fetchBalances]);
+  }, [fetchBalances, mode]);
 
   if (loading) {
     return (

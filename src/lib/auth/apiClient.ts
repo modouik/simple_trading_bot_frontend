@@ -38,26 +38,34 @@ const client = axios.create({
 let refreshPromise: Promise<boolean> | null = null;
 
 /** Point unique de refresh : utilisé par l’interceptor ET par AuthContext (visibility). Évite le double refresh qui invalide le token côté Laravel. */
+const doRefresh = async (isRetry = false): Promise<boolean> => {
+  try {
+    const res = await fetch("/api/auth/refresh", {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as {
+      access_token: string;
+      expires_in: number;
+    };
+    if (!data?.access_token || !data?.expires_in) return false;
+    setTokens(data.access_token, data.expires_in);
+    return true;
+  } catch {
+    if (!isRetry) {
+      await new Promise((r) => setTimeout(r, 1200));
+      return doRefresh(true);
+    }
+    return false;
+  }
+};
+
 export const refreshAccessToken = async (): Promise<boolean> => {
   if (refreshPromise) return refreshPromise;
-  refreshPromise = fetch("/api/auth/refresh", {
-    method: "POST",
-    credentials: "include", // envoie le cookie refresh_token
-  })
-    .then(async (res) => {
-      if (!res.ok) return false;
-      const data = (await res.json()) as {
-        access_token: string;
-        expires_in: number;
-      };
-      if (!data?.access_token || !data?.expires_in) return false;
-      setTokens(data.access_token, data.expires_in);
-      return true;
-    })
-    .catch(() => false)
-    .finally(() => {
-      refreshPromise = null;
-    });
+  refreshPromise = doRefresh().finally(() => {
+    refreshPromise = null;
+  });
   return refreshPromise;
 };
 

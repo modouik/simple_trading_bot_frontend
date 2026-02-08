@@ -39,31 +39,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(false);
         return;
       }
+      // If we have a valid access token in memory (e.g. same tab), no need to refresh
       if (getAccessToken() && !isAccessTokenExpired()) {
         setIsAuthenticated(true);
+        setIsLoading(false);
         return;
       }
-      const res = await fetch("/api/auth/refresh", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) {
-        clearTokens();
-        setIsAuthenticated(false);
-        return;
-      }
-      const data = (await res.json()) as {
-        access_token: string;
-        expires_in: number;
-      };
-      if (data?.access_token && data?.expires_in) {
-        setTokens(data.access_token, data.expires_in);
+      // Refresh token rotation: single point of refresh (shared with apiClient) to avoid double-use of refresh_token
+      const refreshed = await refreshAccessToken();
+      if (refreshed) {
         setIsAuthenticated(true);
       } else {
+        clearTokens();
         setIsAuthenticated(false);
+        router.replace("/login");
       }
     } catch {
       setIsAuthenticated(false);
+      router.replace("/login");
     } finally {
       setIsLoading(false);
     }
@@ -73,28 +66,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     bootstrap();
   }, [pathname]);
 
-  // Quand la session expire (refresh échoué dans apiClient), déconnecter et rediriger vers login
+  // Session expired: logout and redirect only when we're not in the middle of initial bootstrap/refresh.
+  // This avoids redirecting to /login on page refresh while the refresh token is still being used.
   useEffect(() => {
     const handleSessionExpired = () => {
+      if (isLoading) return; // Do not logout while bootstrap/refresh is in progress
       clearTokens();
       setIsAuthenticated(false);
       router.replace("/login");
     };
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
     return () => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleSessionExpired);
-  }, [router]);
+  }, [router, isLoading]);
 
   // Au retour sur l’onglet : un seul refresh (via apiClient) pour éviter que 2 requêtes utilisent le même refresh token (Laravel l’invalide après 1 use)
   useEffect(() => {
     const handleVisibilityChange = async () => {
       if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+      if (pathname?.includes("/login") || pathname?.includes("/signup")) return;
       if (getAccessToken() && !isAccessTokenExpired()) return;
       const ok = await refreshAccessToken();
-      if (ok) setIsAuthenticated(true);
+      if (ok) {
+        setIsAuthenticated(true);
+      } else {
+        clearTokens();
+        setIsAuthenticated(false);
+        router.replace("/login");
+      }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+  }, [router, pathname]);
 
   const login = async (
     username: string,
